@@ -63,9 +63,11 @@ impl ViewController {
     }
     pub fn push(&mut self, view: Box<dyn View>) {
         self.views.push(view);
+        self.curr().set_title();
     }
     pub fn pop(&mut self) {
         self.views.pop();
+        self.curr().set_title();
     }
     pub fn curr(&self) -> &dyn View {
         self.views.last().unwrap().as_ref()

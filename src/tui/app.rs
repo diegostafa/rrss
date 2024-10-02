@@ -1,4 +1,5 @@
 use std::io::{self};
+use std::time::Duration;
 
 use crossterm::event::{self};
 use ratatui::widgets::TableState;
@@ -73,10 +74,11 @@ impl App {
         self.vc.curr().set_title();
         while !self.vc.curr().should_close() {
             term.draw(|f| self.vc.draw(f, f.area()))?;
-            let req = self.vc.update(&event::read()?);
-            self.handle_request(req);
+            if event::poll(Duration::from_millis(200))? {
+                let req = self.vc.update(&event::read()?);
+                self.handle_request(req);
+            }
             self.check_tasks();
-            self.vc.curr().set_title();
         }
         try_release_term(term)
     }

@@ -39,7 +39,8 @@ impl DetailedItemView<'_> {
                 .or(item.summary)
                 .or(item.media.first().and_then(|c| c.description.clone()))
                 .unwrap_or_default(),
-        )
+        );
+        self.set_title();
     }
 }
 impl View for DetailedItemView<'_> {
