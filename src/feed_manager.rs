@@ -82,7 +82,9 @@ impl FeedManager {
         self.update_feeds_ch = Some(rx);
         async_std::task::spawn(Self::fetch_feeds(sx, urls))
     }
-    pub fn poll_update_feeds(&mut self) -> TaskStatus<Vec<RequestError>> {
+    pub fn poll_update_feeds(
+        &mut self,
+    ) -> TaskStatus<(Vec<RequestError>, std::thread::JoinHandle<()>)> {
         if let Some(rx) = &self.update_feeds_ch {
             return match rx.try_recv() {
                 Ok(feeds) => {
@@ -90,9 +92,8 @@ impl FeedManager {
                         .into_iter()
                         .partition_map(|r| r.map_or_else(Either::Right, Either::Left));
                     self.merge_new_feeds(ok);
-                    self.save();
                     self.update_feeds_ch = None;
-                    TaskStatus::Done(err)
+                    TaskStatus::Done((err, self.save()))
                 }
                 Err(TryRecvError::Empty) => TaskStatus::Running,
                 Err(TryRecvError::Closed) => TaskStatus::Error,
@@ -226,7 +227,7 @@ impl FeedManager {
             .filter(|feed| filter.apply(&&**feed))
             .collect()
     }
-    fn save(&self) {
+    fn save(&self) -> std::thread::JoinHandle<()> {
         std::thread::spawn({
             let guard = self.save_mutex.clone();
             let feeds = self
@@ -238,7 +239,7 @@ impl FeedManager {
                 let _guard = guard.lock();
                 CachedFeeds::save(&feeds).unwrap();
             }
-        });
+        })
     }
 
     async fn fetch_feed(sx: Sender<FetchResult>, url: String) {

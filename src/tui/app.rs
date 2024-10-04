@@ -69,7 +69,7 @@ impl App {
         self.handle_request(AppRequest::OpenFeedView(Filter::default(), Sorter::NONE));
         self
     }
-    pub fn run(&mut self) -> Result<(), Box<io::Error>> {
+    pub fn run(mut self) -> Result<(), Box<io::Error>> {
         let mut term = try_init_term()?;
         self.vc.curr().set_title();
         while !self.vc.curr().should_close() {
@@ -221,7 +221,7 @@ impl App {
                 self.handle_request(AppRequest::OpenNotificationView(format!("{:?}", e)));
             }
         }
-        if let TaskStatus::Done(errs) = self.fm.poll_update_feeds() {
+        if let TaskStatus::Done((errs, _)) = self.fm.poll_update_feeds() {
             self.handle_request(AppRequest::CloseDock);
             self.handle_request(AppRequest::RefreshView);
             if !errs.is_empty() {

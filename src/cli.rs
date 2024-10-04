@@ -9,7 +9,7 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     Dry,
-    Update,
+    Fetch,
     Clear,
     Tui,
     Query {
