@@ -6,8 +6,9 @@ use itertools::Itertools;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
+use crate::cache::SerializableFeed;
 use crate::globals::PROJECT_NAME;
-use crate::model::models::FeedId;
+use crate::model::models::{Feed, FeedId};
 
 pub trait FromPartialToml: Sized {
     type Partial: DeserializeOwned;
@@ -139,6 +140,23 @@ pub struct PartialSources {
 }
 #[derive(Deserialize)]
 pub struct Sources(pub Vec<FeedSource>);
+impl Sources {
+    pub fn bind_to_cached(self, cached_feeds: Vec<SerializableFeed>) -> Vec<Feed> {
+        self.0
+            .into_iter()
+            .map(|s| {
+                let feed = cached_feeds.iter().find(|f| f.id == s.url);
+                let mut feed = Feed {
+                    conf: s.clone(),
+                    data: feed.map(|f| f.data.clone()),
+                    metrics: feed.map(|f| f.metrics.clone()).unwrap_or_default(),
+                };
+                feed.mark_filtered_items();
+                feed
+            })
+            .collect()
+    }
+}
 impl FromPartialToml for Sources {
     type Partial = PartialSources;
 

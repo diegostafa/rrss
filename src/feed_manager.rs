@@ -34,24 +34,9 @@ pub struct FeedManager {
 impl FeedManager {
     pub fn new(sources: Sources) -> Self {
         let cached_feeds = CachedFeeds::load().expect("[error] failed to load feeds");
-        let feeds = sources
-            .0
-            .into_iter()
-            .map(|s| {
-                let feed = cached_feeds.iter().find(|f| f.id == s.url);
-                let mut feed = Feed {
-                    conf: s.clone(),
-                    data: feed.map(|f| f.data.clone()),
-                    metrics: feed.map(|f| f.metrics.clone()).unwrap_or_default(),
-                };
-                feed.mark_filtered_items();
-                feed
-            })
-            .collect();
-
         let fm = Self {
-            feeds,
-            save_mutex: Mutex::new(()).into(),
+            feeds: sources.bind_to_cached(cached_feeds),
+            save_mutex: Arc::new(Mutex::new(())),
             update_feeds_ch: None,
             update_feed_ch: None,
         };
@@ -243,7 +228,8 @@ impl FeedManager {
     }
 
     async fn fetch_feed(sx: Sender<FetchResult>, url: String) {
-        sx.send(Self::_fetch_feed(&url).await).await.unwrap();
+        let feed = async_std::task::spawn_blocking(move || Self::_fetch_feed(&url)).await;
+        sx.send(feed).await.unwrap();
     }
     async fn fetch_feeds(sx: Sender<Vec<FetchResult>>, urls: Vec<String>) {
         let semaphore = Arc::new(Semaphore::new(CONFIG.max_concurrency));
@@ -254,7 +240,7 @@ impl FeedManager {
                 let semaphore = semaphore.clone();
                 async move {
                     let _guard = semaphore.acquire().await;
-                    Self::_fetch_feed(&url).await
+                    async_std::task::spawn_blocking(move || Self::_fetch_feed(&url)).await
                 }
             });
             futures.push(future);
@@ -263,7 +249,7 @@ impl FeedManager {
         let feeds = futures.collect().await;
         sx.send(feeds).await.unwrap();
     }
-    async fn _fetch_feed(url: &str) -> FetchResult {
+    fn _fetch_feed(url: &str) -> FetchResult {
         let data = ureq::get(url).call()?.into_string()?;
         let data = feed_rs::parser::parse(data.as_bytes()).map(FeedAdapter::from)?;
         Ok(SerializableFeed {
