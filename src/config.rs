@@ -72,12 +72,34 @@ impl FromPartialToml for Config {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct PartialFeedFilter {
+    pattern: String,
+    invert: Option<bool>,
+    case_insensitive: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FeedFilter {
+    pub pattern: String,
+    pub invert: bool,
+    pub case_insensitive: bool,
+}
+impl From<PartialFeedFilter> for FeedFilter {
+    fn from(value: PartialFeedFilter) -> Self {
+        Self {
+            pattern: value.pattern,
+            invert: value.invert.unwrap_or(false),
+            case_insensitive: value.case_insensitive.unwrap_or(false),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 struct PartialFeedSource {
     url: Option<FeedId>,
     tags: Vec<String>,
     manual_update: Option<bool>,
-    filter: Option<String>,
-    invert_filter: Option<bool>,
+    filter: Option<PartialFeedFilter>,
     max_items: Option<u32>,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -85,8 +107,7 @@ pub struct FeedSource {
     pub url: FeedId,
     pub tags: Vec<String>,
     pub manual_update: bool,
-    pub filter: Option<String>,
-    pub invert_filter: bool,
+    pub filter: Option<FeedFilter>,
     pub max_items: u32,
 }
 impl From<PartialFeedSource> for FeedSource {
@@ -95,8 +116,7 @@ impl From<PartialFeedSource> for FeedSource {
             url: value.url.expect("url is required"),
             tags: value.tags,
             manual_update: value.manual_update.unwrap_or(false),
-            filter: value.filter,
-            invert_filter: value.invert_filter.unwrap_or(false),
+            filter: value.filter.map(FeedFilter::from),
             max_items: value.max_items.unwrap_or(10000),
         }
     }

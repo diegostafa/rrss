@@ -5,11 +5,11 @@ use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use ratatui::layout::Constraint;
 use ratatui::style::{Color, Style, Stylize};
-use regex::Regex;
+use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
 
 use super::adapters::{FeedAdapter, FeedTypeAdapter, MediaObjectAdapter};
-use crate::config::FeedSource;
+use crate::config::{FeedFilter, FeedSource};
 use crate::globals::CONFIG;
 use crate::model::format_date;
 use crate::tui::widgets::stateful_table::Tabular;
@@ -39,7 +39,7 @@ impl Feed {
         if let Some(data) = &mut self.data {
             data.items.iter_mut().for_each(|i| {
                 if let Some(filter) = &self.conf.filter {
-                    i.is_filtered = self.conf.invert_filter ^ i.title_matches(filter);
+                    i.is_filtered = filter.invert ^ i.title_matches(filter);
                 } else {
                     i.is_filtered = false;
                 }
@@ -204,9 +204,13 @@ impl Item {
     pub fn url(&self) -> Option<String> {
         self.links.first().map(|l| l.href.clone())
     }
-    pub fn title_matches(&self, pattern: &str) -> bool {
+    pub fn title_matches(&self, filter: &FeedFilter) -> bool {
         if let Some(title) = &self.title {
-            return Regex::new(pattern).unwrap().is_match(title);
+            return RegexBuilder::new(&filter.pattern)
+                .case_insensitive(filter.case_insensitive)
+                .build()
+                .unwrap()
+                .is_match(title);
         }
         false
     }

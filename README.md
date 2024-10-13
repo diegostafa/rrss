@@ -11,8 +11,7 @@ date_format = "%a %H:%M %d-%m-%Y"
 
 [[sources]]
 url = "..."
-filter = "cool regex"
-invert_filter = false
+filter = { pattern = "cool regex", invert = false, case_insensitive = false }
 max_items = 100
 
 [[sources]]
