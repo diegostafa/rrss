@@ -15,8 +15,9 @@ filter = { pattern = "cool regex", invert = false, case_insensitive = false }
 max_items = 100
 
 [[sources]]
-...
+# ...
 ```
+
 ![demo](./docs/demo/screenshot.png)
 
 todos
