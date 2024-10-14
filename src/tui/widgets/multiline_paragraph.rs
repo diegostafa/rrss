@@ -18,6 +18,9 @@ impl MultilineParagraph<'_> {
             area: None,
         }
     }
+    pub fn scroll_paragraph(&mut self) {
+        self.paragraph = self.paragraph.clone().scroll((self.scroll_offset, 0));
+    }
 }
 
 impl UiObject for MultilineParagraph<'_> {
@@ -31,19 +34,23 @@ impl UiObject for MultilineParagraph<'_> {
             Event::Key(ev) => match ev.code {
                 KeyCode::Char('j') | KeyCode::Down => {
                     self.scroll_offset = self.scroll_offset.saturating_add(1);
-                    self.paragraph = self.paragraph.clone().scroll((self.scroll_offset, 0));
+                    self.scroll_paragraph();
                 }
                 KeyCode::Char('k') | KeyCode::Up => {
                     self.scroll_offset = self.scroll_offset.saturating_sub(1);
-                    self.paragraph = self.paragraph.clone().scroll((self.scroll_offset, 0));
+                    self.scroll_paragraph();
                 }
                 KeyCode::PageDown => {
-                    self.scroll_offset = self.scroll_offset.saturating_add(10);
-                    self.paragraph = self.paragraph.clone().scroll((self.scroll_offset, 0));
+                    if let Some(area) = self.area {
+                        self.scroll_offset = self.scroll_offset.saturating_add(area.height);
+                        self.scroll_paragraph();
+                    }
                 }
                 KeyCode::PageUp => {
-                    self.scroll_offset = self.scroll_offset.saturating_sub(10);
-                    self.paragraph = self.paragraph.clone().scroll((self.scroll_offset, 0));
+                    if let Some(area) = self.area {
+                        self.scroll_offset = self.scroll_offset.saturating_sub(area.height);
+                        self.scroll_paragraph();
+                    }
                 }
                 _ => {}
             },
@@ -58,7 +65,7 @@ impl UiObject for MultilineParagraph<'_> {
                             && area.contains(pos)
                         {
                             self.scroll_offset = self.scroll_offset.saturating_sub(2);
-                            self.paragraph = self.paragraph.clone().scroll((self.scroll_offset, 0));
+                            self.scroll_paragraph();
                         }
                     }
                     MouseEventKind::ScrollDown => {
@@ -66,7 +73,7 @@ impl UiObject for MultilineParagraph<'_> {
                             && area.contains(pos)
                         {
                             self.scroll_offset = self.scroll_offset.saturating_add(2);
-                            self.paragraph = self.paragraph.clone().scroll((self.scroll_offset, 0));
+                            self.scroll_paragraph();
                         }
                     }
                     _ => {}

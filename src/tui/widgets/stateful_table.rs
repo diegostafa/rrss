@@ -7,8 +7,8 @@ use ratatui::Frame;
 use super::{Padding, UiObject};
 
 pub trait Tabular {
-    type Id;
-    fn id(&self) -> Self::Id;
+    type Value;
+    fn value(&self) -> Self::Value;
     fn content(&self) -> Vec<String>;
     fn column_constraints() -> Vec<fn(u16) -> Constraint>;
     fn column_names() -> Option<Vec<String>> {
@@ -23,8 +23,8 @@ pub trait InteractiveTable {
     fn select_prev(&mut self);
     fn select_next_page(&mut self);
     fn select_prev_page(&mut self);
-    fn select_absolute(&mut self, index: usize);
-    fn select_visible(&mut self, index: usize);
+    fn select_absolute(&mut self, idx: usize);
+    fn select_visible(&mut self, idx: usize);
     fn select_relative(&mut self, offset: isize);
     fn selected_index(&self) -> Option<usize>;
     fn screen_coords_to_row_index(&self, pos: (u16, u16)) -> Option<usize>;
@@ -33,7 +33,7 @@ pub trait InteractiveTable {
 pub struct StatefulTable<'a, T: Tabular> {
     table: Table<'a>,
     state: TableState,
-    identifiers: Vec<T::Id>,
+    values: Vec<T::Value>,
     area: Option<Rect>,
     padding: Padding,
     inner_width: u16,
@@ -43,7 +43,7 @@ impl<'a, T: Tabular> StatefulTable<'a, T> {
         data: Vec<T>,
         mut state: TableState,
         styler: fn(Table<'a>) -> (Table<'a>, Padding),
-    ) -> StatefulTable<'a, T> {
+    ) -> Self {
         let rows = data
             .iter()
             .map(|data| Row::new(data.content()).style(data.style()));
@@ -59,25 +59,26 @@ impl<'a, T: Tabular> StatefulTable<'a, T> {
         let (table, padding) = styler(table);
 
         if let Some(idx) = state.selected() {
-            let idx = clamp(idx, data.len());
-            state.select(Some(idx));
+            state.select(Some(idx.clamp(0, data.len().saturating_sub(1))));
         }
 
-        StatefulTable {
+        Self {
             table,
-            identifiers: data.iter().map(T::id).collect(),
+            values: data.iter().map(T::value).collect(),
             state,
             area: None,
             padding,
             inner_width: col_widths.iter().sum::<u16>() + (col_widths.len() - 1) as u16,
         }
     }
-
-    pub fn selected_id(&self) -> Option<&T::Id> {
-        self.state.selected().and_then(|i| self.identifiers.get(i))
+    pub fn new_indexed(data: Vec<T>, state: TableState) -> StatefulTable<'a, IndexedRow<T>> {
+        StatefulTable::new(IndexedRow::from(data), state, apply_table_style::<T>)
+    }
+    pub fn selected_value(&self) -> Option<&T::Value> {
+        self.state.selected().and_then(|i| self.values.get(i))
     }
     pub fn rows_count(&self) -> usize {
-        self.identifiers.len()
+        self.values.len()
     }
     pub fn state(&self) -> TableState {
         self.state.clone()
@@ -128,27 +129,22 @@ impl<'a, T: Tabular> InteractiveTable for StatefulTable<'a, T> {
             self.select_relative(-(area.height as isize))
         }
     }
-    fn select_absolute(&mut self, index: usize) {
-        self.state.select(Some(clamp(index, self.rows_count())));
+    fn select_absolute(&mut self, idx: usize) {
+        let idx = idx.clamp(0, self.rows_count().saturating_sub(1));
+        self.state.select(Some(idx));
     }
-    fn select_visible(&mut self, index: usize) {
-        self.state.select(Some(clamp(
-            self.state.offset().saturating_add(index),
-            self.rows_count(),
-        )));
+    fn select_visible(&mut self, idx: usize) {
+        self.select_absolute(self.state.offset().saturating_add(idx));
     }
     fn select_relative(&mut self, offset: isize) {
-        match self.state.selected() {
-            Some(curr) => {
-                let new = if offset < 0 {
-                    curr.saturating_sub(offset.unsigned_abs())
-                } else {
-                    curr.saturating_add(offset.unsigned_abs())
-                };
-                self.state.select(Some(clamp(new, self.rows_count())));
+        let new = self.selected_index().map_or(0, |curr| {
+            if offset < 0 {
+                curr.saturating_sub(offset.unsigned_abs())
+            } else {
+                curr.saturating_add(offset.unsigned_abs())
             }
-            None => self.state.select(Some(0)),
-        }
+        });
+        self.select_absolute(new);
     }
     fn selected_index(&self) -> Option<usize> {
         self.state.selected()
@@ -218,9 +214,9 @@ impl<T: Tabular> IndexedRow<T> {
     }
 }
 impl<T: Tabular> Tabular for IndexedRow<T> {
-    type Id = T::Id;
-    fn id(&self) -> Self::Id {
-        self.data.id()
+    type Value = T::Value;
+    fn value(&self) -> Self::Value {
+        self.data.value()
     }
     fn content(&self) -> Vec<String> {
         let mut content = self.data.content();
@@ -243,24 +239,9 @@ impl<T: Tabular> Tabular for IndexedRow<T> {
     }
 }
 
-fn clamp(x: usize, max: usize) -> usize {
-    x.clamp(0, max.saturating_sub(1))
-}
-
 // --- hack
 
-pub fn app_table<'a, T: Tabular>(
-    data: Vec<T>,
-    state: TableState,
-) -> StatefulTable<'a, IndexedRow<T>> {
-    StatefulTable::new(
-        IndexedRow::from(data),
-        state,
-        default_table_style::<IndexedRow<T>>,
-    )
-}
-
-pub fn default_table_style<T: Tabular>(mut table: Table<'_>) -> (Table<'_>, Padding) {
+pub fn apply_table_style<T: Tabular>(mut table: Table<'_>) -> (Table<'_>, Padding) {
     let mut pad = Padding::default();
 
     let block = {

@@ -10,7 +10,7 @@ use crate::model::filter::Filter;
 use crate::model::models::Item;
 use crate::model::sorter::Sorter;
 use crate::tui::app::AppRequest;
-use crate::tui::widgets::stateful_table::{app_table, IndexedRow, InteractiveTable, StatefulTable};
+use crate::tui::widgets::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 use crate::tui::widgets::UiObject;
 
 pub struct ItemsView<'row> {
@@ -25,7 +25,7 @@ impl ItemsView<'_> {
             items.retain(|i| !i.is_filtered);
         }
         ItemsView {
-            table: app_table(items, state),
+            table: StatefulTable::new_indexed(items, state),
             filter,
             sorter,
         }
@@ -48,19 +48,19 @@ impl View for ItemsView<'_> {
         match ev {
             Event::Key(ev) => match ev.code {
                 KeyCode::Char('o') => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         return AppRequest::OpenItem(id.clone());
                     }
                 }
                 KeyCode::Char('l') => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         return AppRequest::OpenLinksView(
                             Filter::default().with_item_id(id.clone()),
                         );
                     }
                 }
                 KeyCode::Char('i') => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         return AppRequest::OpenInfoItemView(id.clone());
                     }
                 }
@@ -70,7 +70,7 @@ impl View for ItemsView<'_> {
                     }
                 }
                 KeyCode::Char('a') => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         return AppRequest::MarkItemAsRead(id.clone());
                     }
                 }

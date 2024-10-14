@@ -9,7 +9,7 @@ use crate::model::filter::Filter;
 use crate::model::models::{Feed, Item, Tag};
 use crate::model::sorter::Sorter;
 use crate::tui::app::AppRequest;
-use crate::tui::widgets::stateful_table::{app_table, IndexedRow, InteractiveTable, StatefulTable};
+use crate::tui::widgets::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 use crate::tui::widgets::UiObject;
 
 pub struct FeedsView<'row> {
@@ -19,7 +19,7 @@ pub struct FeedsView<'row> {
 }
 impl<'row> FeedsView<'row> {
     pub fn new(fm: &FeedManager, filter: Filter, sorter: Sorter<Feed>, state: TableState) -> Self {
-        let table = app_table(fm.get_feeds(&filter, &sorter), state);
+        let table = StatefulTable::new_indexed(fm.get_feeds(&filter, &sorter), state);
         FeedsView {
             table,
             filter,
@@ -53,12 +53,12 @@ impl<'row> View for FeedsView<'row> {
                     return AppRequest::OpenTagView(Filter::default(), Tag::BY_NAME);
                 }
                 KeyCode::Char('r') => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         return AppRequest::UpdateFeed(id.clone());
                     }
                 }
                 KeyCode::Char('a') => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         return AppRequest::MarkFeedAsRead(id.clone());
                     }
                 }
@@ -67,19 +67,19 @@ impl<'row> View for FeedsView<'row> {
                     return AppRequest::RefreshView;
                 }
                 KeyCode::Char('l') => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         return AppRequest::OpenLinksView(
                             Filter::default().with_feed_id(id.clone()),
                         );
                     }
                 }
                 KeyCode::Char('i') => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         return AppRequest::OpenInfoFeedView(id.clone());
                     }
                 }
                 KeyCode::Enter => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         return AppRequest::OpenItemsView(id.clone(), Item::BY_POSTED_REV);
                     }
                 }
@@ -92,7 +92,7 @@ impl<'row> View for FeedsView<'row> {
                         if let Some(row) = self.table.screen_coords_to_row_index(pos)
                             && let Some(idx) = self.table.selected_index()
                             && row == idx
-                            && let Some(id) = self.table.selected_id()
+                            && let Some(id) = self.table.selected_value()
                         {
                             return AppRequest::OpenItemsView(id.clone(), Item::BY_POSTED_REV);
                         }
@@ -109,7 +109,7 @@ impl<'row> View for FeedsView<'row> {
     }
 
     fn on_prompt_submit(&mut self, _value: String) -> AppRequest {
-        if let Some(id) = self.table.selected_id() {
+        if let Some(id) = self.table.selected_value() {
             return AppRequest::OpenItemsView(id.clone(), Item::BY_POSTED_REV);
         }
         AppRequest::None

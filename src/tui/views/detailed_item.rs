@@ -66,11 +66,11 @@ impl View for DetailedItemView<'_> {
                         Filter::default().with_item_id(self.item().id.clone()),
                     )
                 }
-                KeyCode::Left => {
+                KeyCode::Char('K') | KeyCode::Left => {
                     self.item_idx = self.item_idx.saturating_sub(1).max(0);
                     return AppRequest::RefreshView;
                 }
-                KeyCode::Right => {
+                KeyCode::Char('J') | KeyCode::Right => {
                     self.item_idx = (self.item_idx + 1).min(self.items.len() - 1);
                     return AppRequest::RefreshView;
                 }

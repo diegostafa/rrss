@@ -124,7 +124,7 @@ impl App {
                     items.retain(|i| !i.is_filtered);
                 }
                 let item = items.get(idx).unwrap();
-                self.fm.mark_item_as_read(item.id());
+                self.fm.mark_item_as_read(item.value());
                 let view = DetailedItemView::new(items, idx);
                 self.vc.push(Box::new(view));
             }

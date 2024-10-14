@@ -6,7 +6,7 @@ use ratatui::Frame;
 
 use super::view::View;
 use crate::tui::app::AppRequest;
-use crate::tui::widgets::stateful_table::{app_table, IndexedRow, StatefulTable, Tabular};
+use crate::tui::widgets::stateful_table::{IndexedRow, StatefulTable, Tabular};
 use crate::tui::widgets::UiObject;
 
 struct Shortcut {
@@ -14,9 +14,9 @@ struct Shortcut {
     shortcut: Vec<String>,
 }
 impl Tabular for Shortcut {
-    type Id = String;
+    type Value = String;
 
-    fn id(&self) -> Self::Id {
+    fn value(&self) -> Self::Value {
         self.name.clone()
     }
     fn content(&self) -> Vec<String> {
@@ -36,7 +36,7 @@ pub struct HelpView<'row> {
 impl HelpView<'_> {
     pub fn new() -> Self {
         Self {
-            table: app_table(
+            table: StatefulTable::new_indexed(
                 vec![
                     Shortcut {
                         name: "Quit".to_string(),

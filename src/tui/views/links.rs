@@ -6,7 +6,7 @@ use ratatui::Frame;
 use super::view::View;
 use crate::model::models::Link;
 use crate::tui::app::AppRequest;
-use crate::tui::widgets::stateful_table::{app_table, IndexedRow, InteractiveTable, StatefulTable};
+use crate::tui::widgets::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 use crate::tui::widgets::UiObject;
 
 pub struct LinksView<'row> {
@@ -14,7 +14,7 @@ pub struct LinksView<'row> {
 }
 impl LinksView<'_> {
     pub fn new(links: Vec<Link>) -> Self {
-        let table = app_table(links, TableState::default().with_selected(0));
+        let table = StatefulTable::new_indexed(links, TableState::default().with_selected(0));
         Self { table }
     }
 }
@@ -31,7 +31,7 @@ impl View for LinksView<'_> {
         match ev {
             Event::Key(ev) => match ev.code {
                 KeyCode::Enter | KeyCode::Char('o') => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         let _ = open::that_detached(id);
                         return AppRequest::CloseView;
                     }
@@ -45,7 +45,7 @@ impl View for LinksView<'_> {
                         if let Some(row) = self.table.screen_coords_to_row_index(pos)
                             && let Some(idx) = self.table.selected_index()
                             && row == idx
-                            && let Some(id) = self.table.selected_id()
+                            && let Some(id) = self.table.selected_value()
                         {
                             let _ = open::that_detached(id);
                             return AppRequest::CloseView;

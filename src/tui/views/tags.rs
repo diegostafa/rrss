@@ -10,7 +10,7 @@ use crate::model::models::Tag;
 use crate::model::sorter::Sorter;
 use crate::tui::app::AppRequest;
 use crate::tui::centered_rect;
-use crate::tui::widgets::stateful_table::{app_table, IndexedRow, InteractiveTable, StatefulTable};
+use crate::tui::widgets::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 use crate::tui::widgets::UiObject;
 
 pub struct TagView<'row> {
@@ -20,7 +20,7 @@ pub struct TagView<'row> {
 }
 impl TagView<'_> {
     pub fn new(fm: &FeedManager, filter: Filter, sorter: Sorter<Tag>, state: TableState) -> Self {
-        let table = app_table(fm.get_tags(&filter, &sorter), state);
+        let table = StatefulTable::new_indexed(fm.get_tags(&filter, &sorter), state);
         Self {
             table,
             filter,
@@ -45,12 +45,12 @@ impl View for TagView<'_> {
         match ev {
             Event::Key(ev) => match ev.code {
                 KeyCode::Char('r') => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         return AppRequest::UpdateFeeds(Filter::default().with_tag(id.to_string()));
                     }
                 }
                 KeyCode::Enter => {
-                    if let Some(id) = self.table.selected_id() {
+                    if let Some(id) = self.table.selected_value() {
                         return AppRequest::Chain(vec![
                             AppRequest::CloseView,
                             AppRequest::CloseView,
@@ -69,7 +69,7 @@ impl View for TagView<'_> {
                     if let Some(row) = self.table.screen_coords_to_row_index(pos)
                         && let Some(idx) = self.table.selected_index()
                         && row == idx
-                        && let Some(id) = self.table.selected_id()
+                        && let Some(id) = self.table.selected_value()
                     {
                         return AppRequest::Chain(vec![
                             AppRequest::CloseView,
@@ -98,7 +98,7 @@ impl View for TagView<'_> {
         true
     }
     fn on_prompt_submit(&mut self, _value: String) -> AppRequest {
-        if let Some(id) = self.table.selected_id() {
+        if let Some(id) = self.table.selected_value() {
             return AppRequest::OpenFeedView(
                 Filter::default().with_tag(id.to_string()),
                 Sorter::NONE,

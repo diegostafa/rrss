@@ -121,9 +121,9 @@ impl PartialEq for Feed {
     }
 }
 impl Tabular for Feed {
-    type Id = FeedId;
+    type Value = FeedId;
 
-    fn id(&self) -> Self::Id {
+    fn value(&self) -> Self::Value {
         self.id().clone()
     }
     fn content(&self) -> Vec<String> {
@@ -227,8 +227,8 @@ impl Hash for Item {
     }
 }
 impl Tabular for Item {
-    type Id = ItemId;
-    fn id(&self) -> Self::Id {
+    type Value = ItemId;
+    fn value(&self) -> Self::Value {
         self.id.clone()
     }
     fn content(&self) -> Vec<String> {
@@ -267,8 +267,8 @@ pub struct Tag {
     pub count: usize,
 }
 impl Tabular for Tag {
-    type Id = String;
-    fn id(&self) -> Self::Id {
+    type Value = String;
+    fn value(&self) -> Self::Value {
         self.name.clone()
     }
     fn content(&self) -> Vec<String> {
@@ -289,9 +289,9 @@ pub struct Link {
     pub mime_type: Option<String>,
 }
 impl Tabular for Link {
-    type Id = String;
+    type Value = String;
 
-    fn id(&self) -> Self::Id {
+    fn value(&self) -> Self::Value {
         self.href.clone()
     }
     fn content(&self) -> Vec<String> {
