@@ -68,7 +68,7 @@ impl View for ItemsView<'_> {
                     }
                 }
                 KeyCode::Char('f') => {
-                    self.filter.unfiltered = self.filter.unfiltered.take().or(Some(()));
+                    self.filter.unfiltered = self.filter.unfiltered.map_or(Some(()), |_| None);
                     return AppRequest::RefreshView;
                 }
                 KeyCode::Char('c') => {
