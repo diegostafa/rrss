@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         Commands::Dry => {}
         Commands::Fetch => {
-            async_std::task::block_on(fm.update_feeds(&Filter::default()));
+            async_std::task::block_on(fm.update_feeds(&Filter::new()));
             match fm.poll_update_feeds() {
                 TaskStatus::None | TaskStatus::Running => unreachable!(),
                 TaskStatus::Error => eprintln!("Error updating feeds"),
@@ -41,11 +41,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Clear => fm.clear_items(),
         Commands::Query { query } => match query {
             QueryCommand::ReadCount => {
-                let items = fm.get_items(&Filter::default().is_item_read(), &Sorter::NONE);
+                let items = fm.get_items(&Filter::new().read_item(), &Sorter::NONE);
                 println!("read: {}", items.len());
             }
             QueryCommand::UnreadCount => {
-                let items = fm.get_items(&Filter::default().is_item_unread(), &Sorter::NONE);
+                let items = fm.get_items(&Filter::new().unread_item(), &Sorter::NONE);
                 println!("unread: {}", items.len());
             }
         },

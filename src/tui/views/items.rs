@@ -5,7 +5,6 @@ use ratatui::Frame;
 
 use super::view::View;
 use crate::feed_manager::FeedManager;
-use crate::globals::CONFIG;
 use crate::model::filter::Filter;
 use crate::model::models::Item;
 use crate::model::sorter::Sorter;
@@ -20,12 +19,8 @@ pub struct ItemsView<'row> {
 }
 impl ItemsView<'_> {
     pub fn new(fm: &FeedManager, filter: Filter, sorter: Sorter<Item>, state: TableState) -> Self {
-        let mut items = fm.get_items(&filter, &sorter);
-        if !CONFIG.dim_filtered_items {
-            items.retain(|i| !i.is_filtered);
-        }
         ItemsView {
-            table: StatefulTable::new_indexed(items, state),
+            table: StatefulTable::new_indexed(fm.get_items(&filter, &sorter), state),
             filter,
             sorter,
         }
@@ -54,9 +49,7 @@ impl View for ItemsView<'_> {
                 }
                 KeyCode::Char('l') => {
                     if let Some(id) = self.table.selected_value() {
-                        return AppRequest::OpenLinksView(
-                            Filter::default().with_item_id(id.clone()),
-                        );
+                        return AppRequest::OpenLinksView(Filter::new().item_id(id.clone()));
                     }
                 }
                 KeyCode::Char('i') => {
@@ -65,7 +58,7 @@ impl View for ItemsView<'_> {
                     }
                 }
                 KeyCode::Char('r') => {
-                    if let Some(feed_id) = &self.filter.with_feed_id {
+                    if let Some(feed_id) = &self.filter.feed_id {
                         return AppRequest::UpdateFeed(feed_id.clone());
                     }
                 }
@@ -74,9 +67,12 @@ impl View for ItemsView<'_> {
                         return AppRequest::MarkItemAsRead(id.clone());
                     }
                 }
+                KeyCode::Char('f') => {
+                    self.filter.unfiltered = self.filter.unfiltered.take().or(Some(()));
+                    return AppRequest::RefreshView;
+                }
                 KeyCode::Char('c') => {
-                    self.filter =
-                        Filter::default().with_feed_id(self.filter.with_feed_id.clone().unwrap());
+                    self.filter = Filter::new().feed_id(self.filter.feed_id.clone().unwrap());
                     return AppRequest::RefreshView;
                 }
                 KeyCode::Enter => {

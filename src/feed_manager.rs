@@ -11,7 +11,7 @@ use crate::cache::{CachedFeeds, SerializableFeed};
 use crate::config::Sources;
 use crate::globals::CONFIG;
 use crate::model::adapters::FeedAdapter;
-use crate::model::filter::{ApplyFilter, Filter};
+use crate::model::filter::{Filter, FilterTest};
 use crate::model::models::{Feed, FeedId, FeedMetrics, Item, ItemId, Link, Tag};
 use crate::model::sorter::Sorter;
 
@@ -105,11 +105,11 @@ impl FeedManager {
         TaskStatus::None
     }
     pub fn merge_new_feeds(&mut self, new_feeds: Vec<SerializableFeed>) {
-        new_feeds.into_iter().for_each(|new| {
+        for new in new_feeds {
             if let Some(feed) = self.get_feed_mut(new.id) {
                 feed.merge_feed(new.data)
             }
-        });
+        }
     }
     pub fn mark_item_as_read(&mut self, id: ItemId) {
         if let Some(i) = self.get_item_mut(id) {
@@ -118,7 +118,7 @@ impl FeedManager {
         }
     }
     pub fn mark_feed_as_read(&mut self, id: FeedId) {
-        self.items_mut(&Filter::default().with_feed_id(id))
+        self.items_mut(&Filter::new().feed_id(id))
             .iter_mut()
             .for_each(|i| i.is_read = true);
         self.save();
@@ -130,8 +130,7 @@ impl FeedManager {
         }
     }
     pub fn get_tags(&self, filter: &Filter, sorter: &Sorter<Tag>) -> Vec<Tag> {
-        let mut tags: Vec<_> = self
-            .feeds(&Filter::default())
+        self.feeds(&Filter::new())
             .iter()
             .flat_map(|f| f.tags())
             .counts()
@@ -140,76 +139,71 @@ impl FeedManager {
                 name: k.to_string(),
                 count: v,
             })
-            .filter(|t| filter.apply(&t))
-            .collect();
-        tags.sort_by(sorter.0);
-        tags
+            .filter(|t| filter.test(&t))
+            .sorted_by(sorter.0)
+            .collect()
     }
     pub fn get_feeds(&self, filter: &Filter, sorter: &Sorter<Feed>) -> Vec<Feed> {
-        let mut feeds: Vec<_> = self.feeds(filter).into_iter().cloned().collect();
-        feeds.sort_unstable_by(sorter.0);
-        feeds
+        self.feeds(filter)
+            .into_iter()
+            .cloned()
+            .sorted_unstable_by(sorter.0)
+            .collect()
     }
     pub fn get_items(&self, filter: &Filter, sorter: &Sorter<Item>) -> Vec<Item> {
-        let mut items: Vec<_> = self.items(filter).into_iter().cloned().collect();
-        items.sort_by(sorter.0);
-        items
+        self.items(filter)
+            .into_iter()
+            .cloned()
+            .sorted_by(sorter.0)
+            .collect()
     }
     pub fn get_links(&self, filter: &Filter, sorter: &Sorter<Link>) -> Vec<Link> {
-        let mut links = self
-            .items(filter)
+        self.items(filter)
             .into_iter()
             .flat_map(|i| i.links.clone())
-            .collect::<Vec<_>>();
-        links.sort_by(sorter.0);
-        links
+            .sorted_by(sorter.0)
+            .collect()
     }
     pub fn get_item(&self, id: ItemId) -> Option<&Item> {
-        self.items(&Filter::default().with_item_id(id))
-            .first()
-            .cloned()
+        self.items(&Filter::new().item_id(id)).first().cloned()
     }
     pub fn get_item_mut(&mut self, id: ItemId) -> Option<&mut Item> {
-        self.items_mut(&Filter::default().with_item_id(id))
+        self.items_mut(&Filter::new().item_id(id))
             .into_iter()
             .next()
     }
     pub fn get_feed(&self, id: FeedId) -> Option<&Feed> {
-        self.feeds(&Filter::default().with_feed_id(id))
-            .first()
-            .cloned()
+        self.feeds(&Filter::new().feed_id(id)).first().cloned()
     }
     pub fn get_feed_mut(&mut self, id: FeedId) -> Option<&mut Feed> {
-        self.feeds_mut(&Filter::default().with_feed_id(id))
+        self.feeds_mut(&Filter::new().feed_id(id))
             .into_iter()
             .next()
     }
+
     fn items(&self, filter: &Filter) -> Vec<&Item> {
         self.feeds
             .iter()
-            .filter(|f| filter.apply(f))
+            .filter(|f| filter.test(f))
             .filter_map(Feed::items)
-            .flat_map(|items| items.iter().filter(|item| filter.apply(item)))
+            .flat_map(|items| items.iter().filter(|item| filter.test(item)))
             .collect()
     }
     fn items_mut(&mut self, filter: &Filter) -> Vec<&mut Item> {
         self.feeds
             .iter_mut()
-            .filter(|feed| filter.apply(&&**feed))
+            .filter(|feed| filter.test(&&**feed))
             .filter_map(Feed::items_mut)
-            .flat_map(|items| items.iter_mut().filter(|item| filter.apply(&&**item)))
+            .flat_map(|items| items.iter_mut().filter(|item| filter.test(&&**item)))
             .collect()
     }
     fn feeds(&self, filter: &Filter) -> Vec<&Feed> {
-        self.feeds
-            .iter()
-            .filter(|feed| filter.apply(feed))
-            .collect()
+        self.feeds.iter().filter(|feed| filter.test(feed)).collect()
     }
     fn feeds_mut(&mut self, filter: &Filter) -> Vec<&mut Feed> {
         self.feeds
             .iter_mut()
-            .filter(|feed| filter.apply(&&**feed))
+            .filter(|feed| filter.test(&&**feed))
             .collect()
     }
     fn save(&self) -> std::thread::JoinHandle<()> {

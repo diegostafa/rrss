@@ -55,7 +55,7 @@ impl HelpView<'_> {
                         shortcut: vec!["f".to_string()],
                     },
                 ],
-                TableState::default().with_selected(0),
+                TableState::new().with_selected(0),
             ),
         }
     }

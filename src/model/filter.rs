@@ -1,64 +1,79 @@
 use super::models::{Feed, FeedId, Item, ItemId, Tag};
 
-pub trait ApplyFilter<T> {
-    fn apply(&self, e: &&T) -> bool;
+pub trait FilterTest<T> {
+    fn test(&self, e: &&T) -> bool;
 }
 
 #[derive(Default, Debug, Clone)]
 pub struct Filter {
-    pub with_tag_name: Option<String>,
-    pub with_feed_id: Option<FeedId>,
-    pub with_item_id: Option<ItemId>,
-    pub unread_feed: Option<()>,
+    pub tag_id: Option<String>,
+    pub feed_id: Option<FeedId>,
+    pub item_id: Option<ItemId>,
+
+    pub unread_feed: Option<bool>,
     pub unread_item: Option<bool>,
+
     pub feed_contains: Option<String>,
     pub item_contains: Option<String>,
     pub tag_contains: Option<String>,
+
+    pub unfiltered: Option<()>,
 }
 impl Filter {
-    pub fn with_tag(mut self, tag: String) -> Self {
-        self.with_tag_name = Some(tag);
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn tag_id(mut self, tag: String) -> Self {
+        self.tag_id = Some(tag);
         self
     }
-    pub fn with_feed_id(mut self, id: FeedId) -> Self {
-        self.with_feed_id = Some(id);
+    pub fn feed_id(mut self, id: FeedId) -> Self {
+        self.feed_id = Some(id);
         self
     }
-    pub fn with_item_id(mut self, id: ItemId) -> Self {
-        self.with_item_id = Some(id);
+    pub fn item_id(mut self, id: ItemId) -> Self {
+        self.item_id = Some(id);
         self
     }
-    pub fn has_unread_items(mut self) -> Self {
-        self.unread_feed = Some(());
+    pub fn unread_feed(mut self) -> Self {
+        self.unread_feed = Some(true);
         self
     }
-    pub fn is_item_read(mut self) -> Self {
-        self.unread_item = Some(false);
+    pub fn read_feed(mut self) -> Self {
+        self.unread_feed = Some(false);
         self
     }
-    pub fn is_item_unread(mut self) -> Self {
+    pub fn unread_item(mut self) -> Self {
         self.unread_item = Some(true);
         self
     }
-    pub fn with_feed_containing(mut self, pattern: String) -> Self {
+    pub fn read_item(mut self) -> Self {
+        self.unread_item = Some(false);
+        self
+    }
+    pub fn feed_contains(mut self, pattern: String) -> Self {
         self.feed_contains = Some(pattern);
         self
     }
-    pub fn with_item_containing(mut self, pattern: String) -> Self {
+    pub fn item_contains(mut self, pattern: String) -> Self {
         self.feed_contains = Some(pattern);
         self
     }
-    pub fn with_tag_containing(mut self, pattern: String) -> Self {
+    pub fn tag_contains(mut self, pattern: String) -> Self {
         self.tag_contains = Some(pattern);
         self
     }
+    pub fn unfiltered(mut self) -> Self {
+        self.unfiltered = Some(());
+        self
+    }
 }
-impl ApplyFilter<Feed> for Filter {
-    fn apply(&self, e: &&Feed) -> bool {
-        if let Some(tag) = &self.with_tag_name {
+impl FilterTest<Feed> for Filter {
+    fn test(&self, e: &&Feed) -> bool {
+        if let Some(tag) = &self.tag_id {
             return e.tags().contains(tag);
         }
-        if let Some(id) = &self.with_feed_id {
+        if let Some(id) = &self.feed_id {
             return e.id() == id;
         }
         if let Some(_) = &self.unread_feed {
@@ -70,15 +85,15 @@ impl ApplyFilter<Feed> for Filter {
         true
     }
 }
-impl ApplyFilter<Item> for Filter {
-    fn apply(&self, e: &&Item) -> bool {
-        if let Some(id) = &self.with_item_id {
+impl FilterTest<Item> for Filter {
+    fn test(&self, e: &&Item) -> bool {
+        if let Some(id) = &self.item_id {
             return e.id == *id;
         }
-        if let Some(true) = &self.unread_item {
+        if let Some(true) = self.unread_item {
             return !e.is_read;
         }
-        if let Some(false) = &self.unread_item {
+        if let Some(false) = self.unread_item {
             return e.is_read;
         }
         if let Some(p) = &self.item_contains {
@@ -90,12 +105,15 @@ impl ApplyFilter<Item> for Filter {
             }
             return false;
         }
+        if let Some(_) = self.unfiltered {
+            return !e.is_filtered;
+        }
         true
     }
 }
-impl ApplyFilter<Tag> for Filter {
-    fn apply(&self, e: &&Tag) -> bool {
-        if let Some(id) = &self.with_tag_name {
+impl FilterTest<Tag> for Filter {
+    fn test(&self, e: &&Tag) -> bool {
+        if let Some(id) = &self.tag_id {
             return e.name == *id;
         }
         if let Some(p) = &self.tag_contains {

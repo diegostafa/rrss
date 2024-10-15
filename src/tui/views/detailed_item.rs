@@ -62,9 +62,7 @@ impl View for DetailedItemView<'_> {
                     }
                 }
                 KeyCode::Char('l') => {
-                    return AppRequest::OpenLinksView(
-                        Filter::default().with_item_id(self.item().id.clone()),
-                    )
+                    return AppRequest::OpenLinksView(Filter::new().item_id(self.item().id.clone()))
                 }
                 KeyCode::Char('K') | KeyCode::Left => {
                     self.item_idx = self.item_idx.saturating_sub(1).max(0);

@@ -35,13 +35,11 @@ pub struct Feed {
     pub data: Option<FeedAdapter>,
 }
 impl Feed {
-    pub fn mark_filtered_items(&mut self) {
+    pub fn refresh_items_metrics(&mut self) {
         if let Some(data) = &mut self.data {
             data.items.iter_mut().for_each(|i| {
                 if let Some(filter) = &self.conf.filter {
                     i.is_filtered = filter.invert ^ i.title_matches(filter);
-                } else {
-                    i.is_filtered = false;
                 }
             });
         }
@@ -56,12 +54,12 @@ impl Feed {
                     .chain(new.items)
                     .unique()
                     .take(self.conf.max_items as usize)
-                    .collect_vec();
-                self.mark_filtered_items();
+                    .collect();
             }
             _ => self.data = Some(new),
         };
-        self.update_metrics();
+        self.refresh_items_metrics();
+        self.refresh_feed_metrics();
     }
     pub fn url(&self) -> &str {
         &self.conf.url.0
@@ -94,7 +92,7 @@ impl Feed {
     pub fn increment_hits(&mut self) {
         self.metrics.hits += 1;
     }
-    pub fn update_metrics(&mut self) {
+    pub fn refresh_feed_metrics(&mut self) {
         if let Some(feed) = &self.data {
             self.metrics.latest_item_date = feed.items.iter().map(|i| i.posted).max().flatten();
             self.metrics.is_recent = self.metrics.latest_item_date.map_or(false, |date| {
@@ -315,10 +313,4 @@ impl Tabular for Link {
     fn style(&self) -> Style {
         Style::default()
     }
-}
-
-pub struct PingItem {
-    pub url: String,
-    pub submitter: Option<String>,
-    pub title: Option<String>,
 }

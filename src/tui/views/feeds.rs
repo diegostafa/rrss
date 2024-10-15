@@ -50,7 +50,7 @@ impl<'row> View for FeedsView<'row> {
                     return AppRequest::UpdateFeeds(self.filter.clone());
                 }
                 KeyCode::Char('t') => {
-                    return AppRequest::OpenTagView(Filter::default(), Tag::BY_NAME);
+                    return AppRequest::OpenTagView(Filter::new(), Tag::BY_NAME);
                 }
                 KeyCode::Char('r') => {
                     if let Some(id) = self.table.selected_value() {
@@ -63,14 +63,12 @@ impl<'row> View for FeedsView<'row> {
                     }
                 }
                 KeyCode::Char('c') => {
-                    self.filter = Filter::default();
+                    self.filter = Filter::new();
                     return AppRequest::RefreshView;
                 }
                 KeyCode::Char('l') => {
                     if let Some(id) = self.table.selected_value() {
-                        return AppRequest::OpenLinksView(
-                            Filter::default().with_feed_id(id.clone()),
-                        );
+                        return AppRequest::OpenLinksView(Filter::new().feed_id(id.clone()));
                     }
                 }
                 KeyCode::Char('i') => {

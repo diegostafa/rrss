@@ -46,7 +46,7 @@ impl View for TagView<'_> {
             Event::Key(ev) => match ev.code {
                 KeyCode::Char('r') => {
                     if let Some(id) = self.table.selected_value() {
-                        return AppRequest::UpdateFeeds(Filter::default().with_tag(id.to_string()));
+                        return AppRequest::UpdateFeeds(Filter::new().tag_id(id.to_string()));
                     }
                 }
                 KeyCode::Enter => {
@@ -55,7 +55,7 @@ impl View for TagView<'_> {
                             AppRequest::CloseView,
                             AppRequest::CloseView,
                             AppRequest::OpenFeedView(
-                                Filter::default().with_tag(id.clone()),
+                                Filter::new().tag_id(id.clone()),
                                 Sorter::NONE,
                             ),
                         ]);
@@ -75,7 +75,7 @@ impl View for TagView<'_> {
                             AppRequest::CloseView,
                             AppRequest::CloseView,
                             AppRequest::OpenFeedView(
-                                Filter::default().with_tag(id.clone()),
+                                Filter::new().tag_id(id.clone()),
                                 Sorter::NONE,
                             ),
                         ]);
@@ -99,10 +99,7 @@ impl View for TagView<'_> {
     }
     fn on_prompt_submit(&mut self, _value: String) -> AppRequest {
         if let Some(id) = self.table.selected_value() {
-            return AppRequest::OpenFeedView(
-                Filter::default().with_tag(id.to_string()),
-                Sorter::NONE,
-            );
+            return AppRequest::OpenFeedView(Filter::new().tag_id(id.to_string()), Sorter::NONE);
         }
         AppRequest::None
     }

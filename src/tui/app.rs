@@ -14,10 +14,8 @@ use super::views::prompt::PromptView;
 use super::views::status::StatusView;
 use super::views::tags::TagView;
 use super::views::view::{Dock, DockPosition, ViewController};
-use super::widgets::stateful_table::Tabular;
 use super::{try_init_term, try_release_term};
 use crate::feed_manager::{FeedManager, TaskStatus};
-use crate::globals::CONFIG;
 use crate::model::filter::Filter;
 use crate::model::models::{Feed, FeedId, Item, ItemId, Tag};
 use crate::model::sorter::Sorter;
@@ -66,7 +64,7 @@ impl App {
         Self { fm, vc }
     }
     pub fn init(mut self) -> Self {
-        self.handle_request(AppRequest::OpenFeedView(Filter::default(), Sorter::NONE));
+        self.handle_request(AppRequest::OpenFeedView(Filter::new(), Sorter::NONE));
         self
     }
     pub fn run(mut self) -> Result<(), Box<io::Error>> {
@@ -98,16 +96,16 @@ impl App {
                     &self.fm,
                     filter,
                     sorter,
-                    TableState::default().with_selected(0),
+                    TableState::new().with_selected(0),
                 )));
             }
             AppRequest::OpenItemsView(feed_id, sorter) => {
                 self.fm.increment_feed_hits(feed_id.clone());
                 self.vc.push(Box::new(ItemsView::new(
                     &self.fm,
-                    Filter::default().with_feed_id(feed_id),
+                    Filter::new().feed_id(feed_id),
                     sorter,
-                    TableState::default().with_selected(0),
+                    TableState::new().with_selected(0),
                 )));
             }
             AppRequest::OpenTagView(filter, sorter) => {
@@ -115,16 +113,13 @@ impl App {
                     &self.fm,
                     filter,
                     sorter,
-                    TableState::default().with_selected(0),
+                    TableState::new().with_selected(0),
                 )));
             }
             AppRequest::OpenDetailedItemView(filter, sorter, idx) => {
-                let mut items = self.fm.get_items(&filter, &sorter);
-                if !CONFIG.dim_filtered_items {
-                    items.retain(|i| !i.is_filtered);
-                }
+                let items = self.fm.get_items(&filter, &sorter);
                 let item = items.get(idx).unwrap();
-                self.fm.mark_item_as_read(item.value());
+                self.fm.mark_item_as_read(item.id.clone());
                 let view = DetailedItemView::new(items, idx);
                 self.vc.push(Box::new(view));
             }
@@ -150,7 +145,7 @@ impl App {
                         i.id,
                         i.title.clone().unwrap(),
                         i.is_filtered,
-                        i.is_read
+                        i.is_read,
                     )));
                 }
             }

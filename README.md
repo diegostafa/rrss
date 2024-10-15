@@ -2,7 +2,6 @@
 # $HOME/.config/rrss/config.toml
 
 max_concurrency = 20
-dim_filtered_items = true
 date_format = "%a %H:%M %d-%m-%Y"
 ```
 

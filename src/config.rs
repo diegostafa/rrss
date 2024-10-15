@@ -38,7 +38,6 @@ pub struct Keybinds {
 
 #[derive(Deserialize)]
 pub struct PartialConfig {
-    dim_filtered_items: Option<bool>,
     date_format: Option<String>,
     max_days_until_old: Option<u32>,
     unread_marker: Option<String>,
@@ -50,7 +49,6 @@ pub struct PartialConfig {
 pub struct Config {
     pub date_format: String,
     pub max_days_until_old: u32,
-    pub dim_filtered_items: bool,
     pub unread_marker: String,
     pub read_marker: String,
     pub max_concurrency: usize,
@@ -61,7 +59,6 @@ impl FromPartialToml for Config {
 
     fn partial_to_full(val: PartialConfig) -> Self {
         Self {
-            dim_filtered_items: val.dim_filtered_items.unwrap_or(false),
             date_format: val.date_format.unwrap_or_else(|| "%Y-%m-%d".to_string()),
             unread_marker: val.unread_marker.unwrap_or_else(|| String::from("*")),
             read_marker: val.read_marker.unwrap_or_else(|| String::from(" ")),
@@ -151,7 +148,7 @@ impl Sources {
                     data: feed.map(|f| f.data.clone()),
                     metrics: feed.map(|f| f.metrics.clone()).unwrap_or_default(),
                 };
-                feed.mark_filtered_items();
+                feed.refresh_items_metrics();
                 feed
             })
             .collect()

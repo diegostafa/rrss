@@ -14,7 +14,7 @@ pub struct LinksView<'row> {
 }
 impl LinksView<'_> {
     pub fn new(links: Vec<Link>) -> Self {
-        let table = StatefulTable::new_indexed(links, TableState::default().with_selected(0));
+        let table = StatefulTable::new_indexed(links, TableState::new().with_selected(0));
         Self { table }
     }
 }
