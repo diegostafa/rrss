@@ -51,14 +51,12 @@ impl View for TagView<'_> {
                 }
                 KeyCode::Enter => {
                     if let Some(id) = self.table.selected_value() {
-                        return AppRequest::Chain(vec![
-                            AppRequest::CloseView,
-                            AppRequest::CloseView,
-                            AppRequest::OpenFeedView(
+                        return AppRequest::CloseView
+                            + AppRequest::CloseView
+                            + AppRequest::OpenFeedView(
                                 Filter::new().tag_id(id.clone()),
                                 Sorter::NONE,
-                            ),
-                        ]);
+                            );
                     }
                 }
                 _ => {}
@@ -71,14 +69,12 @@ impl View for TagView<'_> {
                         && row == idx
                         && let Some(id) = self.table.selected_value()
                     {
-                        return AppRequest::Chain(vec![
-                            AppRequest::CloseView,
-                            AppRequest::CloseView,
-                            AppRequest::OpenFeedView(
+                        return AppRequest::CloseView
+                            + AppRequest::CloseView
+                            + AppRequest::OpenFeedView(
                                 Filter::new().tag_id(id.clone()),
                                 Sorter::NONE,
-                            ),
-                        ]);
+                            );
                     }
                 }
                 _ => {}

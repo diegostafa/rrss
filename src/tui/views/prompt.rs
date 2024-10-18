@@ -27,10 +27,8 @@ impl View for PromptView {
             Event::Key(key) => match key.code {
                 KeyCode::Esc => return AppRequest::CloseDock,
                 KeyCode::Enter => {
-                    return AppRequest::Chain(vec![
-                        AppRequest::CloseDock,
-                        AppRequest::SubmitPromptValue(self.input.value().to_string()),
-                    ])
+                    return AppRequest::CloseDock
+                        + AppRequest::SubmitPromptValue(self.input.value().to_string())
                 }
                 _ => {}
             },

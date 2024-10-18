@@ -1,4 +1,5 @@
 use std::io::{self};
+use std::ops::Add;
 use std::time::Duration;
 
 use crossterm::event::{self};
@@ -20,6 +21,7 @@ use crate::model::filter::Filter;
 use crate::model::models::{Feed, FeedId, Item, ItemId, Tag};
 use crate::model::sorter::Sorter;
 
+#[derive(Clone)]
 pub enum AppRequest {
     None,
     Chain(Vec<AppRequest>),
@@ -51,6 +53,26 @@ impl AppRequest {
             return other();
         }
         self
+    }
+}
+impl Add for AppRequest {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        match (self.clone(), other.clone()) {
+            (AppRequest::Chain(mut reqs1), AppRequest::Chain(mut reqs2)) => {
+                reqs1.append(&mut reqs2);
+                AppRequest::Chain(reqs1)
+            }
+            (AppRequest::Chain(mut reqs1), _) => {
+                reqs1.push(other);
+                AppRequest::Chain(reqs1)
+            }
+            (_, AppRequest::Chain(mut reqs2)) => {
+                reqs2.insert(0, self);
+                AppRequest::Chain(reqs2)
+            }
+            (_, _) => AppRequest::Chain(vec![self, other]),
+        }
     }
 }
 
