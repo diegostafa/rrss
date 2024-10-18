@@ -1,5 +1,5 @@
 use crossterm::event::{Event, KeyCode};
-use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::widgets::{Block, Borders};
 use ratatui::Frame;
 
@@ -16,6 +16,8 @@ pub struct DetailedItemView<'a> {
     item_idx: usize,
     header: MultilineParagraph<'a>,
     content: MultilineParagraph<'a>,
+
+    layout: Layout,
 }
 impl DetailedItemView<'_> {
     pub fn new(items: Vec<Item>, curr_idx: usize) -> Self {
@@ -24,6 +26,13 @@ impl DetailedItemView<'_> {
             item_idx: curr_idx,
             header: MultilineParagraph::new("".to_string()),
             content: MultilineParagraph::new("".to_string()),
+            layout: Layout::default()
+                .direction(Direction::Vertical)
+                .constraints(vec![
+                    Constraint::Length(1),
+                    Constraint::Length(1),
+                    Constraint::Fill(1),
+                ]),
         };
         view.update_view();
         view
@@ -87,27 +96,9 @@ impl View for DetailedItemView<'_> {
     }
 
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {
-        let header_area = Rect {
-            x: area.x,
-            y: area.y,
-            width: area.width,
-            height: 1,
-        };
-        let sep_area = Rect {
-            x: area.x,
-            y: header_area.y + header_area.height,
-            width: area.width,
-            height: 1,
-        };
-        let content_area = Rect {
-            x: area.x,
-            y: sep_area.y + sep_area.height,
-            width: area.width,
-            height: area.height - sep_area.height - header_area.height,
-        };
-        let separator = Block::default().borders(Borders::BOTTOM);
-        self.header.draw(f, header_area);
-        f.render_widget(separator, sep_area);
-        self.content.draw(f, content_area);
+        let layout = self.layout.split(area);
+        self.header.draw(f, layout[0]);
+        f.render_widget(Block::default().borders(Borders::BOTTOM), layout[1]);
+        self.content.draw(f, layout[2]);
     }
 }

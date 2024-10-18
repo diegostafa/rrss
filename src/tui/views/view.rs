@@ -1,6 +1,6 @@
 use crossterm::event::{Event, KeyCode, KeyModifiers};
 use crossterm::terminal;
-use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::widgets::Clear;
 use ratatui::Frame;
 
@@ -140,63 +140,24 @@ pub struct Dock {
 }
 impl Dock {
     pub fn split_area(&self, area: Rect) -> (Rect, Rect) {
+        let layout = match self.position {
+            DockPosition::Left => Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints(vec![Constraint::Length(self.size), Constraint::Fill(1)]),
+            DockPosition::Right => Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints(vec![Constraint::Fill(1), Constraint::Length(self.size)]),
+            DockPosition::Top => Layout::default()
+                .direction(Direction::Vertical)
+                .constraints(vec![Constraint::Length(self.size), Constraint::Fill(1)]),
+            DockPosition::Bottom => Layout::default()
+                .direction(Direction::Vertical)
+                .constraints(vec![Constraint::Fill(1), Constraint::Length(self.size)]),
+        }
+        .split(area);
         match self.position {
-            DockPosition::Left => (
-                Rect {
-                    x: area.x,
-                    y: area.y,
-                    width: self.size,
-                    height: area.height,
-                },
-                Rect {
-                    x: area.x + self.size,
-                    y: area.y,
-                    width: area.width.saturating_sub(self.size),
-                    height: area.height,
-                },
-            ),
-            DockPosition::Right => (
-                Rect {
-                    x: area.x + area.width.saturating_sub(self.size),
-                    y: area.y,
-                    width: self.size,
-                    height: area.height,
-                },
-                Rect {
-                    x: area.x,
-                    y: area.y,
-                    width: area.width.saturating_sub(self.size),
-                    height: area.height,
-                },
-            ),
-            DockPosition::Top => (
-                Rect {
-                    x: area.x,
-                    y: area.y,
-                    width: area.width,
-                    height: area.y + self.size,
-                },
-                Rect {
-                    x: area.x,
-                    y: area.y + self.size,
-                    width: area.width,
-                    height: area.height.saturating_sub(self.size),
-                },
-            ),
-            DockPosition::Bottom => (
-                Rect {
-                    x: area.x,
-                    y: area.y + area.height.saturating_sub(self.size),
-                    width: area.width,
-                    height: self.size,
-                },
-                Rect {
-                    x: area.x,
-                    y: area.y,
-                    width: area.width,
-                    height: area.height.saturating_sub(self.size),
-                },
-            ),
+            DockPosition::Left | DockPosition::Top => (layout[0], layout[1]),
+            DockPosition::Right | DockPosition::Bottom => (layout[1], layout[0]),
         }
     }
 }
