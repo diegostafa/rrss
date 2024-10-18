@@ -1,8 +1,10 @@
 use ratatui::layout::Rect;
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
+use ratatui_view::view::View;
 
-use crate::tui::views::view::View;
+use crate::feed_manager::FeedManager;
+use crate::tui::app::AppRequest;
 
 pub struct StatusView<'a> {
     msg: Paragraph<'a>,
@@ -15,6 +17,8 @@ impl StatusView<'_> {
     }
 }
 impl View for StatusView<'_> {
+    type Model = FeedManager;
+    type Signal = AppRequest;
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {
         f.render_widget(self.msg.clone(), area)
     }

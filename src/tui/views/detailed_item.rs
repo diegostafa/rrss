@@ -1,9 +1,9 @@
-use crossterm::event::{Event, KeyCode};
+use ratatui::crossterm::event::{Event, KeyCode};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::widgets::{Block, Borders};
 use ratatui::Frame;
+use ratatui_view::view::View;
 
-use super::view::View;
 use crate::feed_manager::FeedManager;
 use crate::model::filter::Filter;
 use crate::model::models::Item;
@@ -53,13 +53,16 @@ impl DetailedItemView<'_> {
     }
 }
 impl View for DetailedItemView<'_> {
+    type Model = FeedManager;
+    type Signal = AppRequest;
+
     fn title(&self) -> String {
         format!("{}", self.item().title.clone().unwrap_or_default())
     }
     fn refresh(&mut self, _fm: &FeedManager) {
         self.update_view();
     }
-    fn specific_update(&mut self, ev: &Event) -> AppRequest {
+    fn update(&mut self, ev: &Event) -> AppRequest {
         self.content.handle_event(ev);
         match ev {
             Event::Key(ev) => match ev.code {

@@ -4,7 +4,7 @@ pub trait FilterTest<T> {
     fn test(&self, e: &&T) -> bool;
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct Filter {
     pub tag_id: Option<String>,
     pub feed_id: Option<FeedId>,

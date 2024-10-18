@@ -8,4 +8,3 @@ pub mod prompt;
 pub mod quit;
 pub mod status;
 pub mod tags;
-pub mod view;

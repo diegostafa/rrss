@@ -1,4 +1,4 @@
-use crossterm::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
+use ratatui::crossterm::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::Frame;
 use stateful_table::{InteractiveTable, StatefulTable, Tabular};

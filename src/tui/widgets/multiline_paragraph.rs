@@ -1,4 +1,4 @@
-use crossterm::event::{Event, KeyCode, MouseEventKind};
+use ratatui::crossterm::event::{Event, KeyCode, MouseEventKind};
 use ratatui::layout::{Position, Rect};
 use ratatui::widgets::{Paragraph, Wrap};
 use ratatui::Frame;

@@ -1382,6 +1382,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ratatui_view"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1455,7 +1462,6 @@ dependencies = [
  "chrono",
  "chrono-humanize",
  "clap",
- "crossterm 0.27.0",
  "directories",
  "feed-rs",
  "futures",
@@ -1465,6 +1471,7 @@ dependencies = [
  "mime",
  "open",
  "ratatui",
+ "ratatui_view",
  "regex",
  "serde",
  "serde_with",

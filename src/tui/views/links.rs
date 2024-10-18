@@ -1,10 +1,11 @@
-use crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
+use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::{Clear, TableState};
 use ratatui::Frame;
+use ratatui_view::view::View;
 use stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 
-use super::view::View;
+use crate::feed_manager::FeedManager;
 use crate::model::models::Link;
 use crate::tui::app::AppRequest;
 use crate::tui::widgets::handle_table_events;
@@ -19,13 +20,15 @@ impl LinksView<'_> {
     }
 }
 impl View for LinksView<'_> {
+    type Model = FeedManager;
+    type Signal = AppRequest;
     fn title(&self) -> String {
         format!("rrss - links")
     }
     fn is_floating(&self) -> bool {
         true
     }
-    fn specific_update(&mut self, ev: &Event) -> AppRequest {
+    fn update(&mut self, ev: &Event) -> AppRequest {
         handle_table_events(&mut self.table, ev);
 
         match ev {

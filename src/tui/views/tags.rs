@@ -1,10 +1,10 @@
-use crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
+use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
+use ratatui_view::view::View;
 use stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 
-use super::view::View;
 use crate::feed_manager::FeedManager;
 use crate::model::filter::Filter;
 use crate::model::models::Tag;
@@ -29,6 +29,8 @@ impl TagView<'_> {
     }
 }
 impl View for TagView<'_> {
+    type Model = FeedManager;
+    type Signal = AppRequest;
     fn title(&self) -> String {
         format!("rrss - tags")
     }
@@ -40,7 +42,7 @@ impl View for TagView<'_> {
             self.table.state().clone(),
         );
     }
-    fn specific_update(&mut self, ev: &Event) -> AppRequest {
+    fn update(&mut self, ev: &Event) -> AppRequest {
         handle_table_events(&mut self.table, ev);
         match ev {
             Event::Key(ev) => match ev.code {
@@ -83,7 +85,7 @@ impl View for TagView<'_> {
         }
         AppRequest::None
     }
-    fn compute_draw_area(&self, area: Rect) -> Rect {
+    fn compute_area(&self, area: Rect) -> Rect {
         let (width, height) = self.table.size();
         let (width, height) = (width.min(area.width), height.min(area.height));
         centered_rect(area, (width, height.min(20)))

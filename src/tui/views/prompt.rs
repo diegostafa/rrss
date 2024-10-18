@@ -1,12 +1,13 @@
-use crossterm::event::{Event, KeyCode};
+use ratatui::crossterm::event::{Event, KeyCode};
 use ratatui::layout::Rect;
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
+use ratatui_view::view::View;
 use tui_input::backend::crossterm::EventHandler;
 use tui_input::{Input, StateChanged};
 
+use crate::feed_manager::FeedManager;
 use crate::tui::app::AppRequest;
-use crate::tui::views::view::View;
 
 pub struct PromptView {
     prefix: String,
@@ -22,7 +23,10 @@ impl PromptView {
     }
 }
 impl View for PromptView {
-    fn specific_update(&mut self, ev: &Event) -> AppRequest {
+    type Model = FeedManager;
+    type Signal = AppRequest;
+
+    fn update(&mut self, ev: &Event) -> AppRequest {
         match ev {
             Event::Key(key) => match key.code {
                 KeyCode::Esc => return AppRequest::CloseDock,
@@ -34,7 +38,7 @@ impl View for PromptView {
             },
             _ => {}
         }
-        if let Some(StateChanged { value: true, .. }) = self.input.handle_event(ev) {
+        if let Some(StateChanged { value: true, .. }) = self.input.handle_event(todo!()) {
             return AppRequest::ChangePromptValue(self.input.value().to_string());
         }
         AppRequest::None

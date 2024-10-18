@@ -1,10 +1,11 @@
-use crossterm::event::Event;
+use ratatui::crossterm::event::Event;
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
+use ratatui_view::view::View;
 use stateful_table::{IndexedRow, StatefulTable};
 
-use super::view::View;
+use crate::feed_manager::FeedManager;
 use crate::model::models::Shortcut;
 use crate::tui::app::AppRequest;
 use crate::tui::widgets::handle_table_events;
@@ -40,10 +41,12 @@ impl HelpView<'_> {
     }
 }
 impl View for HelpView<'_> {
+    type Model = FeedManager;
+    type Signal = AppRequest;
     fn title(&self) -> String {
         format!("rrss - help")
     }
-    fn specific_update(&mut self, ev: &Event) -> AppRequest {
+    fn update(&mut self, ev: &Event) -> AppRequest {
         handle_table_events(&mut self.table, ev);
         AppRequest::None
     }

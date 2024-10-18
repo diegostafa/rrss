@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use super::models::{Feed, Item, Link, Tag};
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Sorter<T>(pub fn(&T, &T) -> Ordering);
 impl<T> Sorter<T> {
     pub const NONE: Sorter<T> = Self(|_, _| Ordering::Equal);

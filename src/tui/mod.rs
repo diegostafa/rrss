@@ -1,10 +1,10 @@
 use std::io;
 
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
-use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
+use ratatui::crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use ratatui::crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::layout::Rect;
 use ratatui::prelude::CrosstermBackend;
-use ratatui::Terminal;
+use ratatui::{crossterm, Terminal};
 
 pub mod app;
 pub mod views;

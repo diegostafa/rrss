@@ -1,10 +1,10 @@
-use crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
+use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
+use ratatui_view::view::View;
 use stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 
-use super::view::View;
 use crate::feed_manager::FeedManager;
 use crate::model::filter::Filter;
 use crate::model::models::Item;
@@ -27,6 +27,8 @@ impl ItemsView<'_> {
     }
 }
 impl View for ItemsView<'_> {
+    type Model = FeedManager;
+    type Signal = AppRequest;
     fn title(&self) -> String {
         format!("rrss - items")
     }
@@ -38,7 +40,7 @@ impl View for ItemsView<'_> {
             self.table.state().clone(),
         );
     }
-    fn specific_update(&mut self, ev: &Event) -> AppRequest {
+    fn update(&mut self, ev: &Event) -> AppRequest {
         handle_table_events(&mut self.table, ev);
 
         match ev {

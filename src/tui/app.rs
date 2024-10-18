@@ -2,8 +2,11 @@ use std::io::{self};
 use std::ops::Add;
 use std::time::Duration;
 
-use crossterm::event::{self};
+use ratatui::crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use ratatui::widgets::TableState;
+use ratatui_view::dock::{Dock, DockPosition};
+use ratatui_view::view::Optional;
+use ratatui_view::view_controller::ViewController;
 
 use super::views::detailed_item::DetailedItemView;
 use super::views::feeds::FeedsView;
@@ -12,9 +15,9 @@ use super::views::items::ItemsView;
 use super::views::links::LinksView;
 use super::views::notification::NotificationView;
 use super::views::prompt::PromptView;
+use super::views::quit::QuitView;
 use super::views::status::StatusView;
 use super::views::tags::TagView;
-use super::views::view::{Dock, DockPosition, ViewController};
 use super::{try_init_term, try_release_term};
 use crate::feed_manager::{FeedManager, TaskStatus};
 use crate::model::filter::Filter;
@@ -47,12 +50,12 @@ pub enum AppRequest {
     MarkItemAsRead(ItemId),
     MarkFeedAsRead(FeedId),
 }
-impl AppRequest {
-    pub fn or_else<T: FnOnce() -> AppRequest>(self, other: T) -> AppRequest {
-        if let AppRequest::None = self {
-            return other();
-        }
-        self
+impl Optional for AppRequest {
+    fn none() -> Self {
+        AppRequest::None
+    }
+    fn is_none(&self) -> bool {
+        matches!(self, AppRequest::None)
     }
 }
 impl Add for AppRequest {
@@ -78,11 +81,11 @@ impl Add for AppRequest {
 
 pub struct App {
     fm: FeedManager,
-    vc: ViewController,
+    vc: ViewController<FeedManager, AppRequest>,
 }
 impl App {
     pub fn new(fm: FeedManager) -> Self {
-        let vc = ViewController::new();
+        let vc = ViewController::new(Box::new(QuitView));
         Self { fm, vc }
     }
     pub fn init(mut self) -> Self {
@@ -95,12 +98,37 @@ impl App {
         while !self.vc.curr().should_close() {
             term.draw(|f| self.vc.draw(f, f.area()))?;
             if event::poll(Duration::from_millis(200))? {
-                let req = self.vc.update(&event::read()?);
+                let req = self.update(&event::read()?);
                 self.handle_request(req);
             }
             self.poll_tasks();
         }
         try_release_term(term)
+    }
+
+    fn update(&mut self, ev: &Event) -> AppRequest {
+        if let Some(dock) = &mut self.vc.dock {
+            dock.view
+                .update(ev)
+                .or_else(|| self.common_update(ev))
+                .or_else(|| self.vc.curr_mut().update(ev))
+        } else {
+            self.common_update(ev)
+                .or_else(|| self.vc.curr_mut().update(ev))
+        }
+    }
+    fn common_update(&mut self, ev: &Event) -> AppRequest {
+        match ev {
+            Event::Key(ev) => match ev.code {
+                KeyCode::Left if ev.modifiers == KeyModifiers::ALT => return AppRequest::CloseView,
+                KeyCode::Char('q') => return AppRequest::CloseView,
+                KeyCode::Char('?') => return AppRequest::OpenHelpView,
+                KeyCode::Char('/') => return AppRequest::OpenSearchDock,
+                _ => {}
+            },
+            _ => {}
+        };
+        AppRequest::None
     }
 
     fn handle_request(&mut self, req: AppRequest) {
