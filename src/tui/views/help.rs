@@ -1,34 +1,13 @@
 use crossterm::event::Event;
-use itertools::Itertools;
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
+use stateful_table::{IndexedRow, StatefulTable};
 
 use super::view::View;
+use crate::model::models::Shortcut;
 use crate::tui::app::AppRequest;
-use crate::tui::widgets::stateful_table::{IndexedRow, StatefulTable, Tabular};
-use crate::tui::widgets::UiObject;
-
-struct Shortcut {
-    name: String,
-    shortcut: Vec<String>,
-}
-impl Tabular for Shortcut {
-    type Value = String;
-
-    fn value(&self) -> Self::Value {
-        self.name.clone()
-    }
-    fn content(&self) -> Vec<String> {
-        vec![self.name.clone(), self.shortcut.iter().join(",")]
-    }
-    fn column_names() -> Option<Vec<String>> {
-        Some(vec![format!("Name"), format!("Shortcut")])
-    }
-    fn column_constraints() -> Vec<fn(u16) -> Constraint> {
-        vec![Constraint::Length, Constraint::Length]
-    }
-}
+use crate::tui::widgets::handle_table_events;
 
 pub struct HelpView<'row> {
     table: StatefulTable<'row, IndexedRow<Shortcut>>,
@@ -65,7 +44,7 @@ impl View for HelpView<'_> {
         format!("rrss - help")
     }
     fn specific_update(&mut self, ev: &Event) -> AppRequest {
-        self.table.handle_event(ev);
+        handle_table_events(&mut self.table, ev);
         AppRequest::None
     }
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {

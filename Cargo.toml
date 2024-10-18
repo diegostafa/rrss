@@ -28,3 +28,4 @@ serde_with = { version = "3.8.1", features = ["chrono"] }
 toml = "0.8.12"
 tui-input = "0.8.0"
 ureq = "2.10.1"
+stateful_table = { path = "../stateful_table" }

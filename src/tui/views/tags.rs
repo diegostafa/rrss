@@ -2,6 +2,7 @@ use crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
+use stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 
 use super::view::View;
 use crate::feed_manager::FeedManager;
@@ -10,8 +11,7 @@ use crate::model::models::Tag;
 use crate::model::sorter::Sorter;
 use crate::tui::app::AppRequest;
 use crate::tui::centered_rect;
-use crate::tui::widgets::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
-use crate::tui::widgets::UiObject;
+use crate::tui::widgets::handle_table_events;
 
 pub struct TagView<'row> {
     table: StatefulTable<'row, IndexedRow<Tag>>,
@@ -37,11 +37,11 @@ impl View for TagView<'_> {
             fm,
             self.filter.clone(),
             self.sorter.clone(),
-            self.table.state(),
+            self.table.state().clone(),
         );
     }
     fn specific_update(&mut self, ev: &Event) -> AppRequest {
-        self.table.handle_event(ev);
+        handle_table_events(&mut self.table, ev);
         match ev {
             Event::Key(ev) => match ev.code {
                 KeyCode::Char('r') => {
@@ -88,8 +88,9 @@ impl View for TagView<'_> {
         AppRequest::None
     }
     fn compute_draw_area(&self, area: Rect) -> Rect {
-        let (tw, th) = self.table.size();
-        centered_rect(area, (tw, th.min(20)))
+        let (width, height) = self.table.size();
+        let (width, height) = (width.min(area.width), height.min(area.height));
+        centered_rect(area, (width, height.min(20)))
     }
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {
         self.table.draw(f, area)

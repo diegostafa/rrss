@@ -76,7 +76,7 @@ impl App {
                 let req = self.vc.update(&event::read()?);
                 self.handle_request(req);
             }
-            self.check_tasks();
+            self.poll_tasks();
         }
         try_release_term(term)
     }
@@ -208,7 +208,7 @@ impl App {
             }
         }
     }
-    fn check_tasks(&mut self) {
+    fn poll_tasks(&mut self) {
         if let TaskStatus::Done(res) = self.fm.poll_update_feed() {
             self.handle_request(AppRequest::CloseDock);
             self.handle_request(AppRequest::RefreshView);

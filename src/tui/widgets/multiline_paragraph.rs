@@ -8,14 +8,14 @@ use super::UiObject;
 pub struct MultilineParagraph<'a> {
     paragraph: Paragraph<'a>,
     scroll_offset: u16,
-    area: Option<Rect>,
+    area: Rect,
 }
 impl MultilineParagraph<'_> {
     pub fn new(content: String) -> Self {
         Self {
             paragraph: Paragraph::new(content).wrap(Wrap::default()),
             scroll_offset: 0,
-            area: None,
+            area: Rect::default(),
         }
     }
     pub fn scroll_paragraph(&mut self) {
@@ -25,7 +25,7 @@ impl MultilineParagraph<'_> {
 
 impl UiObject for MultilineParagraph<'_> {
     fn draw(&mut self, f: &mut Frame, area: Rect) {
-        self.area = Some(area);
+        self.area = area;
         f.render_widget(&self.paragraph, area);
     }
 
@@ -41,16 +41,12 @@ impl UiObject for MultilineParagraph<'_> {
                     self.scroll_paragraph();
                 }
                 KeyCode::PageDown => {
-                    if let Some(area) = self.area {
-                        self.scroll_offset = self.scroll_offset.saturating_add(area.height);
-                        self.scroll_paragraph();
-                    }
+                    self.scroll_offset = self.scroll_offset.saturating_add(self.area.height);
+                    self.scroll_paragraph();
                 }
                 KeyCode::PageUp => {
-                    if let Some(area) = self.area {
-                        self.scroll_offset = self.scroll_offset.saturating_sub(area.height);
-                        self.scroll_paragraph();
-                    }
+                    self.scroll_offset = self.scroll_offset.saturating_sub(self.area.height);
+                    self.scroll_paragraph();
                 }
                 _ => {}
             },
@@ -59,22 +55,17 @@ impl UiObject for MultilineParagraph<'_> {
                     x: ev.column,
                     y: ev.row,
                 };
+                if !self.area.contains(pos) {
+                    return;
+                }
                 match ev.kind {
                     MouseEventKind::ScrollUp => {
-                        if let Some(area) = self.area
-                            && area.contains(pos)
-                        {
-                            self.scroll_offset = self.scroll_offset.saturating_sub(2);
-                            self.scroll_paragraph();
-                        }
+                        self.scroll_offset = self.scroll_offset.saturating_sub(2);
+                        self.scroll_paragraph();
                     }
                     MouseEventKind::ScrollDown => {
-                        if let Some(area) = self.area
-                            && area.contains(pos)
-                        {
-                            self.scroll_offset = self.scroll_offset.saturating_add(2);
-                            self.scroll_paragraph();
-                        }
+                        self.scroll_offset = self.scroll_offset.saturating_add(2);
+                        self.scroll_paragraph();
                     }
                     _ => {}
                 }

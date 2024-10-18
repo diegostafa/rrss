@@ -57,7 +57,7 @@ pub struct ViewController {
 impl ViewController {
     pub fn new() -> Self {
         Self {
-            views: vec![Box::new(QuitView {})],
+            views: vec![Box::new(QuitView)],
             dock: None,
         }
     }
@@ -90,6 +90,18 @@ impl ViewController {
     pub fn remove_dock(&mut self) {
         self.dock = None;
     }
+    fn draw_bottom_up(&mut self, f: &mut Frame<'_>, area: Rect, idx: usize) {
+        if self.views[idx].is_floating() {
+            self.draw_bottom_up(f, area, idx - 1);
+            let view = &mut self.views[idx];
+            let area = view.compute_draw_area(area);
+            f.render_widget(Clear, area);
+            view.draw(f, area);
+        } else {
+            self.views[idx].draw(f, area);
+        }
+    }
+
     pub fn draw(&mut self, f: &mut Frame<'_>, mut area: Rect) {
         if let Some(dock) = &mut self.dock {
             let (dock_area, other_area) = dock.split_area(area);
@@ -97,11 +109,7 @@ impl ViewController {
             dock.view.draw(f, dock_area);
         }
         if self.curr_mut().is_floating() {
-            self.prev_mut().draw(f, area);
-            let curr = self.curr_mut();
-            let area = curr.compute_draw_area(area);
-            f.render_widget(Clear, area);
-            curr.draw(f, area);
+            self.draw_bottom_up(f, area, self.views.len() - 1);
         } else {
             self.curr_mut().draw(f, area);
         }

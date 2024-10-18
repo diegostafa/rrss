@@ -27,7 +27,9 @@ impl View for NotificationView<'_> {
         AppRequest::None
     }
     fn compute_draw_area(&self, area: Rect) -> Rect {
-        centered_rect(area, (30, 15))
+        let (width, height) = (30, 15);
+        let (width, height) = (width.min(area.width), height.min(area.height));
+        centered_rect(area, (width, height))
     }
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {
         f.render_widget(&self.p, area);

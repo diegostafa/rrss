@@ -2,12 +2,12 @@ use crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::{Clear, TableState};
 use ratatui::Frame;
+use stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 
 use super::view::View;
 use crate::model::models::Link;
 use crate::tui::app::AppRequest;
-use crate::tui::widgets::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
-use crate::tui::widgets::UiObject;
+use crate::tui::widgets::handle_table_events;
 
 pub struct LinksView<'row> {
     table: StatefulTable<'row, IndexedRow<Link>>,
@@ -26,7 +26,7 @@ impl View for LinksView<'_> {
         true
     }
     fn specific_update(&mut self, ev: &Event) -> AppRequest {
-        self.table.handle_event(ev);
+        handle_table_events(&mut self.table, ev);
 
         match ev {
             Event::Key(ev) => match ev.code {

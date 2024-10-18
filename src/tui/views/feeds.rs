@@ -2,6 +2,7 @@ use crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
+use stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 
 use super::view::View;
 use crate::feed_manager::FeedManager;
@@ -9,8 +10,7 @@ use crate::model::filter::Filter;
 use crate::model::models::{Feed, Item, Tag};
 use crate::model::sorter::Sorter;
 use crate::tui::app::AppRequest;
-use crate::tui::widgets::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
-use crate::tui::widgets::UiObject;
+use crate::tui::widgets::handle_table_events;
 
 pub struct FeedsView<'row> {
     table: StatefulTable<'row, IndexedRow<Feed>>,
@@ -37,12 +37,12 @@ impl<'row> View for FeedsView<'row> {
             fm,
             self.filter.clone(),
             self.sorter.clone(),
-            self.table.state(),
+            self.table.state().clone(),
         );
     }
 
     fn specific_update(&mut self, ev: &Event) -> AppRequest {
-        self.table.handle_event(ev);
+        handle_table_events(&mut self.table, ev);
 
         match ev {
             Event::Key(ev) => match ev.code {

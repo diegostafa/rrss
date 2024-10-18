@@ -7,12 +7,12 @@ use ratatui::layout::Constraint;
 use ratatui::style::{Color, Style, Stylize};
 use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
+use stateful_table::Tabular;
 
 use super::adapters::{FeedAdapter, FeedTypeAdapter, MediaObjectAdapter};
 use crate::config::{FeedFilter, FeedSource};
 use crate::globals::CONFIG;
 use crate::model::format_date;
-use crate::tui::widgets::stateful_table::Tabular;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct FeedMetrics {
@@ -312,5 +312,26 @@ impl Tabular for Link {
 
     fn style(&self) -> Style {
         Style::default()
+    }
+}
+
+pub struct Shortcut {
+    pub name: String,
+    pub shortcut: Vec<String>,
+}
+impl Tabular for Shortcut {
+    type Value = String;
+
+    fn value(&self) -> Self::Value {
+        self.name.clone()
+    }
+    fn content(&self) -> Vec<String> {
+        vec![self.name.clone(), self.shortcut.iter().join(",")]
+    }
+    fn column_names() -> Option<Vec<String>> {
+        Some(vec![format!("Name"), format!("Shortcut")])
+    }
+    fn column_constraints() -> Vec<fn(u16) -> Constraint> {
+        vec![Constraint::Length, Constraint::Length]
     }
 }
