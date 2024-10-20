@@ -25,7 +25,6 @@ ratatui_view = { path = "../ratatui_view" }
 regex = "1.10.5"
 serde = { version = "1.0.199", features = ["derive"] }
 serde_with = { version = "3.8.1", features = ["chrono"] }
-stateful_table = { path = "../stateful_table" }
 toml = "0.8.12"
 tui-input = "0.8.0"
 ureq = "2.10.1"

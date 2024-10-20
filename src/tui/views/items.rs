@@ -2,15 +2,15 @@ use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
+use ratatui_view::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 use ratatui_view::view::View;
-use stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 
+use super::new_indexed_table;
 use crate::feed_manager::FeedManager;
 use crate::model::filter::Filter;
 use crate::model::models::Item;
 use crate::model::sorter::Sorter;
-use crate::tui::app::AppRequest;
-use crate::tui::widgets::handle_table_events;
+use crate::tui::app::{AppRequest, ViewKind};
 
 pub struct ItemsView<'row> {
     table: StatefulTable<'row, IndexedRow<Item>>,
@@ -20,7 +20,7 @@ pub struct ItemsView<'row> {
 impl ItemsView<'_> {
     pub fn new(fm: &FeedManager, filter: Filter, sorter: Sorter<Item>, state: TableState) -> Self {
         ItemsView {
-            table: StatefulTable::new_indexed(fm.get_items(&filter, &sorter), state),
+            table: new_indexed_table(fm.get_items(&filter, &sorter), state),
             filter,
             sorter,
         }
@@ -29,6 +29,10 @@ impl ItemsView<'_> {
 impl View for ItemsView<'_> {
     type Model = FeedManager;
     type Signal = AppRequest;
+    type Kind = ViewKind;
+    fn kind(&self) -> Self::Kind {
+        ViewKind::Items
+    }
     fn title(&self) -> String {
         format!("rrss - items")
     }
@@ -41,8 +45,7 @@ impl View for ItemsView<'_> {
         );
     }
     fn update(&mut self, ev: &Event) -> AppRequest {
-        handle_table_events(&mut self.table, ev);
-
+        self.table.update(ev);
         match ev {
             Event::Key(ev) => match ev.code {
                 KeyCode::Char('o') => {

@@ -20,8 +20,8 @@ pub type FetchResult = Result<SerializableFeed, RequestError>;
 
 pub enum TaskStatus<T> {
     None,
-    Error,
     Running,
+    Error(String),
     Done(T),
 }
 
@@ -70,39 +70,48 @@ impl FeedManager {
     pub fn poll_update_feeds(
         &mut self,
     ) -> TaskStatus<(Vec<RequestError>, std::thread::JoinHandle<()>)> {
-        if let Some(rx) = &self.update_feeds_ch {
-            return match rx.try_recv() {
+        match &self.update_feeds_ch {
+            None => TaskStatus::None,
+            Some(rx) => match rx.try_recv() {
+                Err(TryRecvError::Empty) => TaskStatus::Running,
+                Err(TryRecvError::Closed) => {
+                    self.update_feeds_ch = None;
+                    TaskStatus::Error("Internal error".into())
+                }
                 Ok(feeds) => {
+                    self.update_feeds_ch = None;
                     let (ok, err) = feeds
                         .into_iter()
                         .partition_map(|r| r.map_or_else(Either::Right, Either::Left));
                     self.merge_new_feeds(ok);
-                    self.update_feeds_ch = None;
                     TaskStatus::Done((err, self.save()))
                 }
-                Err(TryRecvError::Empty) => TaskStatus::Running,
-                Err(TryRecvError::Closed) => TaskStatus::Error,
-            };
+            },
         }
-        TaskStatus::None
     }
-    pub fn poll_update_feed(&mut self) -> TaskStatus<Result<(), RequestError>> {
-        if let Some(rx) = &self.update_feed_ch {
-            return match rx.try_recv() {
-                Ok(Ok(feed)) => {
-                    if let Some(loc) = self.get_feed_mut(feed.id) {
-                        loc.merge_feed(feed.data);
-                        self.save();
-                        self.update_feed_ch = None;
-                    }
-                    TaskStatus::Done(Ok(()))
-                }
-                Ok(Err(e)) => TaskStatus::Done(Err(e)),
+    pub fn poll_update_feed(&mut self) -> TaskStatus<()> {
+        match &self.update_feed_ch {
+            None => TaskStatus::None,
+            Some(rx) => match rx.try_recv() {
                 Err(TryRecvError::Empty) => TaskStatus::Running,
-                Err(TryRecvError::Closed) => TaskStatus::Error,
-            };
+                Err(TryRecvError::Closed) => {
+                    self.update_feed_ch = None;
+                    TaskStatus::Error("Internal error".into())
+                }
+                Ok(Err(e)) => {
+                    self.update_feed_ch = None;
+                    TaskStatus::Error(e.to_string())
+                }
+                Ok(Ok(feed)) => {
+                    self.update_feed_ch = None;
+                    if let Some(old_feed) = self.get_feed_mut(feed.id) {
+                        old_feed.merge_feed(feed.data);
+                        self.save();
+                    }
+                    TaskStatus::Done(())
+                }
+            },
         }
-        TaskStatus::None
     }
     pub fn merge_new_feeds(&mut self, new_feeds: Vec<SerializableFeed>) {
         for new in new_feeds {
@@ -244,6 +253,7 @@ impl FeedManager {
         sx.send(feeds).await.unwrap();
     }
     fn _fetch_feed(url: &str) -> FetchResult {
+        // todo: use async http client
         let data = ureq::get(url).call()?.into_string()?;
         let data = feed_rs::parser::parse(data.as_bytes()).map(FeedAdapter::from)?;
         Ok(SerializableFeed {

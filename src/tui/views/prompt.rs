@@ -7,7 +7,7 @@ use tui_input::backend::crossterm::EventHandler;
 use tui_input::{Input, StateChanged};
 
 use crate::feed_manager::FeedManager;
-use crate::tui::app::AppRequest;
+use crate::tui::app::{AppRequest, ViewKind};
 
 pub struct PromptView {
     prefix: String,
@@ -25,7 +25,10 @@ impl PromptView {
 impl View for PromptView {
     type Model = FeedManager;
     type Signal = AppRequest;
-
+    type Kind = ViewKind;
+    fn kind(&self) -> Self::Kind {
+        ViewKind::Prompt
+    }
     fn update(&mut self, ev: &Event) -> AppRequest {
         match ev {
             Event::Key(key) => match key.code {

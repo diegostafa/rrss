@@ -2,7 +2,13 @@
 # $HOME/.config/rrss/config.toml
 
 max_concurrency = 20
+
+[theme]
 date_format = "%a %H:%M %d-%m-%Y"
+borders = true
+border_color = "red"
+fg_selected_color = "white"
+# ...
 ```
 
 ```toml
@@ -18,14 +24,3 @@ max_items = 100
 ```
 
 ![demo](./docs/demo/screenshot.png)
-
-todos
-
-- sort by column
-- gen keymap from config
-- global item search
-- widget style in config (borders, colors ...)
-- default view and sorting options in config
-- more cli query commands ??
-- save item as plain text ??
-- open with custom program ??

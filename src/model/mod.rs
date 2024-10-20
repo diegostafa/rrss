@@ -16,7 +16,7 @@ pub fn format_date(date: DateTime<Utc>) -> String {
         _ if delta_days < CONFIG.max_days_until_old as i64 => {
             format!("{}, {}", HumanTime::from(date), date.format("%a, %H:%M"))
         }
-        _ => date.format(CONFIG.date_format.as_str()).to_string(),
+        _ => date.format(CONFIG.theme.date_format.as_str()).to_string(),
     }
 }
 

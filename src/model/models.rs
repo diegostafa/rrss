@@ -1,13 +1,14 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
+use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use ratatui::layout::Constraint;
 use ratatui::style::{Color, Style, Stylize};
+use ratatui_view::stateful_table::Tabular;
 use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
-use stateful_table::Tabular;
 
 use super::adapters::{FeedAdapter, FeedTypeAdapter, MediaObjectAdapter};
 use crate::config::{FeedFilter, FeedSource};
@@ -127,10 +128,10 @@ impl Tabular for Feed {
     fn content(&self) -> Vec<String> {
         let tot_items = self.items().map(Vec::len).unwrap_or_default();
         let tot_unread = self.tot_unread();
-        let mut unread_marker = "";
-        if tot_unread > 0 {
-            unread_marker = &CONFIG.unread_marker;
-        }
+        let unread_marker = match tot_unread > 0 {
+            true => CONFIG.theme.unread_marker,
+            _ => CONFIG.theme.read_marker,
+        };
 
         let latest_item_date = self
             .metrics
@@ -230,13 +231,12 @@ impl Tabular for Item {
         self.id.clone()
     }
     fn content(&self) -> Vec<String> {
-        let unread_marker = if self.is_read {
-            ""
-        } else {
-            &CONFIG.unread_marker
+        let marker = match self.is_read {
+            true => CONFIG.theme.read_marker,
+            _ => CONFIG.theme.unread_marker,
         };
         vec![
-            format!("{}", unread_marker),
+            format!("{}", marker),
             format!("{}", self.title.clone().unwrap_or_default()),
             format!("{}", self.posted.map(format_date).unwrap_or_default()),
         ]
@@ -250,10 +250,14 @@ impl Tabular for Item {
     fn style(&self) -> Style {
         let mut style = Style::default();
         if !self.is_read {
-            style = style.fg(Color::Yellow);
+            style = style
+                .fg(Color::from_str(&CONFIG.theme.fg_unread_color).unwrap())
+                .bg(Color::from_str(&CONFIG.theme.bg_unread_color).unwrap());
         }
         if self.is_filtered {
-            style = style.fg(Color::DarkGray);
+            style = style
+                .fg(Color::from_str(&CONFIG.theme.fg_filtered_color).unwrap())
+                .bg(Color::from_str(&CONFIG.theme.bg_filterd_color).unwrap());
         }
         style
     }

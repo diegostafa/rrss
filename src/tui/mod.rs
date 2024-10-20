@@ -7,6 +7,7 @@ use ratatui::prelude::CrosstermBackend;
 use ratatui::{crossterm, Terminal};
 
 pub mod app;
+pub mod keymaps;
 pub mod views;
 pub mod widgets;
 

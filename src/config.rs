@@ -36,35 +36,105 @@ pub struct Keybinds {
     pub submit: Vec<String>,
 }
 
+#[derive(Deserialize, Default)]
+pub struct PartialTheme {
+    fg_header_color: Option<String>,
+    fg_selected_color: Option<String>,
+    fg_normal_color: Option<String>,
+    fg_unread_color: Option<String>,
+    fg_read_color: Option<String>,
+    fg_filtered_color: Option<String>,
+
+    bg_header_color: Option<String>,
+    bg_selected_color: Option<String>,
+    bg_normal_color: Option<String>,
+    bg_unread_color: Option<String>,
+    bg_read_color: Option<String>,
+    bg_filterd_color: Option<String>,
+
+    border_color: Option<String>,
+    borders: Option<bool>,
+    rounded_borders: Option<bool>,
+    scrollbars: Option<bool>,
+    date_format: Option<String>,
+    unread_marker: Option<char>,
+    read_marker: Option<char>,
+}
+#[derive(Deserialize, Debug)]
+pub struct Theme {
+    pub fg_header_color: String,
+    pub fg_selected_color: String,
+    pub fg_normal_color: String,
+    pub fg_unread_color: String,
+    pub fg_read_color: String,
+    pub fg_filtered_color: String,
+
+    pub bg_header_color: String,
+    pub bg_selected_color: String,
+    pub bg_normal_color: String,
+    pub bg_unread_color: String,
+    pub bg_read_color: String,
+    pub bg_filterd_color: String,
+
+    pub border_color: String,
+    pub borders: bool,
+    pub rounded_borders: bool,
+    pub scrollbars: bool,
+    pub date_format: String,
+    pub unread_marker: char,
+    pub read_marker: char,
+}
+impl From<PartialTheme> for Theme {
+    fn from(val: PartialTheme) -> Self {
+        Self {
+            fg_header_color: val.fg_header_color.unwrap_or("white".to_string()),
+            fg_selected_color: val.fg_selected_color.unwrap_or("black".to_string()),
+            fg_normal_color: val.fg_normal_color.unwrap_or("white".to_string()),
+            fg_unread_color: val.fg_unread_color.unwrap_or("yellow".to_string()),
+            fg_read_color: val.fg_read_color.unwrap_or("white".to_string()),
+            fg_filtered_color: val.fg_filtered_color.unwrap_or("darkgray".to_string()),
+
+            bg_header_color: val.bg_header_color.unwrap_or("green".to_string()),
+            bg_selected_color: val.bg_selected_color.unwrap_or("yellow".to_string()),
+            bg_normal_color: val.bg_normal_color.unwrap_or("black".to_string()),
+            bg_unread_color: val.bg_unread_color.unwrap_or("black".to_string()),
+            bg_read_color: val.bg_read_color.unwrap_or("black".to_string()),
+            bg_filterd_color: val.bg_filterd_color.unwrap_or("black".to_string()),
+
+            border_color: val.border_color.unwrap_or("yellow".to_string()),
+            borders: val.borders.unwrap_or(true),
+            rounded_borders: val.rounded_borders.unwrap_or(false),
+            date_format: val.date_format.unwrap_or_else(|| "%Y-%m-%d".to_string()),
+            unread_marker: val.unread_marker.unwrap_or('*'),
+            read_marker: val.read_marker.unwrap_or(' '),
+            scrollbars: val.scrollbars.unwrap_or(false),
+        }
+    }
+}
+
 #[derive(Deserialize)]
 pub struct PartialConfig {
-    date_format: Option<String>,
     max_days_until_old: Option<u32>,
-    unread_marker: Option<String>,
-    read_marker: Option<String>,
     max_concurrency: Option<usize>,
     keybinds: Option<Keybinds>,
+    theme: Option<PartialTheme>,
 }
 #[derive(Deserialize)]
 pub struct Config {
-    pub date_format: String,
     pub max_days_until_old: u32,
-    pub unread_marker: String,
-    pub read_marker: String,
     pub max_concurrency: usize,
     pub keybinds: Keybinds,
+    pub theme: Theme,
 }
 impl FromPartialToml for Config {
     type Partial = PartialConfig;
 
     fn partial_to_full(val: PartialConfig) -> Self {
         Self {
-            date_format: val.date_format.unwrap_or_else(|| "%Y-%m-%d".to_string()),
-            unread_marker: val.unread_marker.unwrap_or_else(|| String::from("*")),
-            read_marker: val.read_marker.unwrap_or_else(|| String::from(" ")),
             max_concurrency: val.max_concurrency.unwrap_or(5),
             keybinds: val.keybinds.unwrap_or_default(),
             max_days_until_old: val.max_days_until_old.unwrap_or(3),
+            theme: Theme::from(val.theme.unwrap_or_default()),
         }
     }
 }
@@ -75,7 +145,6 @@ pub struct PartialFeedFilter {
     invert: Option<bool>,
     case_insensitive: Option<bool>,
 }
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FeedFilter {
     pub pattern: String,

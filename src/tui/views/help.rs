@@ -2,13 +2,13 @@ use ratatui::crossterm::event::Event;
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
+use ratatui_view::stateful_table::{IndexedRow, StatefulTable};
 use ratatui_view::view::View;
-use stateful_table::{IndexedRow, StatefulTable};
 
+use super::new_indexed_table;
 use crate::feed_manager::FeedManager;
 use crate::model::models::Shortcut;
-use crate::tui::app::AppRequest;
-use crate::tui::widgets::handle_table_events;
+use crate::tui::app::{AppRequest, ViewKind};
 
 pub struct HelpView<'row> {
     table: StatefulTable<'row, IndexedRow<Shortcut>>,
@@ -16,7 +16,7 @@ pub struct HelpView<'row> {
 impl HelpView<'_> {
     pub fn new() -> Self {
         Self {
-            table: StatefulTable::new_indexed(
+            table: new_indexed_table(
                 vec![
                     Shortcut {
                         name: "Quit".to_string(),
@@ -43,11 +43,15 @@ impl HelpView<'_> {
 impl View for HelpView<'_> {
     type Model = FeedManager;
     type Signal = AppRequest;
+    type Kind = ViewKind;
+    fn kind(&self) -> Self::Kind {
+        ViewKind::Help
+    }
     fn title(&self) -> String {
         format!("rrss - help")
     }
     fn update(&mut self, ev: &Event) -> AppRequest {
-        handle_table_events(&mut self.table, ev);
+        self.table.update(ev);
         AppRequest::None
     }
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {

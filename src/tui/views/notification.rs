@@ -1,20 +1,19 @@
-use ratatui::crossterm::event::Event;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
 use ratatui_view::view::View;
 
 use crate::feed_manager::FeedManager;
-use crate::tui::app::AppRequest;
+use crate::tui::app::{AppRequest, ViewKind};
 use crate::tui::centered_rect;
 
 pub struct NotificationView<'a> {
     p: Paragraph<'a>,
 }
 impl NotificationView<'_> {
-    pub fn new(err: String) -> Self {
+    pub fn new(msg: String) -> Self {
         Self {
-            p: Paragraph::new(err)
+            p: Paragraph::new(msg)
                 .wrap(Wrap { trim: true })
                 .block(Block::default().borders(Borders::ALL)),
         }
@@ -23,11 +22,12 @@ impl NotificationView<'_> {
 impl View for NotificationView<'_> {
     type Model = FeedManager;
     type Signal = AppRequest;
+    type Kind = ViewKind;
+    fn kind(&self) -> Self::Kind {
+        ViewKind::Notification
+    }
     fn title(&self) -> String {
         format!("rrss - info")
-    }
-    fn update(&mut self, _ev: &Event) -> AppRequest {
-        AppRequest::None
     }
     fn compute_area(&self, area: Rect) -> Rect {
         let (width, height) = (30, 15);

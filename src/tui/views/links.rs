@@ -2,26 +2,30 @@ use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::{Clear, TableState};
 use ratatui::Frame;
+use ratatui_view::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 use ratatui_view::view::View;
-use stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 
+use super::new_indexed_table;
 use crate::feed_manager::FeedManager;
 use crate::model::models::Link;
-use crate::tui::app::AppRequest;
-use crate::tui::widgets::handle_table_events;
+use crate::tui::app::{AppRequest, ViewKind};
 
 pub struct LinksView<'row> {
     table: StatefulTable<'row, IndexedRow<Link>>,
 }
 impl LinksView<'_> {
     pub fn new(links: Vec<Link>) -> Self {
-        let table = StatefulTable::new_indexed(links, TableState::new().with_selected(0));
+        let table = new_indexed_table(links, TableState::new().with_selected(0));
         Self { table }
     }
 }
 impl View for LinksView<'_> {
     type Model = FeedManager;
     type Signal = AppRequest;
+    type Kind = ViewKind;
+    fn kind(&self) -> Self::Kind {
+        ViewKind::Links
+    }
     fn title(&self) -> String {
         format!("rrss - links")
     }
@@ -29,8 +33,7 @@ impl View for LinksView<'_> {
         true
     }
     fn update(&mut self, ev: &Event) -> AppRequest {
-        handle_table_events(&mut self.table, ev);
-
+        self.table.update(ev);
         match ev {
             Event::Key(ev) => match ev.code {
                 KeyCode::Enter | KeyCode::Char('o') => {

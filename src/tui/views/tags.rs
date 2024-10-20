@@ -2,16 +2,16 @@ use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
+use ratatui_view::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 use ratatui_view::view::View;
-use stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 
+use super::new_indexed_table;
 use crate::feed_manager::FeedManager;
 use crate::model::filter::Filter;
 use crate::model::models::Tag;
 use crate::model::sorter::Sorter;
-use crate::tui::app::AppRequest;
+use crate::tui::app::{AppRequest, ViewKind};
 use crate::tui::centered_rect;
-use crate::tui::widgets::handle_table_events;
 
 pub struct TagView<'row> {
     table: StatefulTable<'row, IndexedRow<Tag>>,
@@ -20,7 +20,7 @@ pub struct TagView<'row> {
 }
 impl TagView<'_> {
     pub fn new(fm: &FeedManager, filter: Filter, sorter: Sorter<Tag>, state: TableState) -> Self {
-        let table = StatefulTable::new_indexed(fm.get_tags(&filter, &sorter), state);
+        let table = new_indexed_table(fm.get_tags(&filter, &sorter), state);
         Self {
             table,
             filter,
@@ -31,6 +31,10 @@ impl TagView<'_> {
 impl View for TagView<'_> {
     type Model = FeedManager;
     type Signal = AppRequest;
+    type Kind = ViewKind;
+    fn kind(&self) -> Self::Kind {
+        ViewKind::Tags
+    }
     fn title(&self) -> String {
         format!("rrss - tags")
     }
@@ -43,7 +47,7 @@ impl View for TagView<'_> {
         );
     }
     fn update(&mut self, ev: &Event) -> AppRequest {
-        handle_table_events(&mut self.table, ev);
+        self.table.update(ev);
         match ev {
             Event::Key(ev) => match ev.code {
                 KeyCode::Char('r') => {

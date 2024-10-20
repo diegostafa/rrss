@@ -7,7 +7,7 @@ use ratatui_view::view::View;
 use crate::feed_manager::FeedManager;
 use crate::model::filter::Filter;
 use crate::model::models::Item;
-use crate::tui::app::AppRequest;
+use crate::tui::app::{AppRequest, ViewKind};
 use crate::tui::widgets::multiline_paragraph::MultilineParagraph;
 use crate::tui::widgets::UiObject;
 
@@ -55,6 +55,11 @@ impl DetailedItemView<'_> {
 impl View for DetailedItemView<'_> {
     type Model = FeedManager;
     type Signal = AppRequest;
+    type Kind = ViewKind;
+
+    fn kind(&self) -> Self::Kind {
+        ViewKind::DetailedItem
+    }
 
     fn title(&self) -> String {
         format!("{}", self.item().title.clone().unwrap_or_default())

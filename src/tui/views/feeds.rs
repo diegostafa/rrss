@@ -2,15 +2,15 @@ use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
+use ratatui_view::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 use ratatui_view::view::View;
-use stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 
+use super::new_indexed_table;
 use crate::feed_manager::FeedManager;
 use crate::model::filter::Filter;
 use crate::model::models::{Feed, Item, Tag};
 use crate::model::sorter::Sorter;
-use crate::tui::app::AppRequest;
-use crate::tui::widgets::handle_table_events;
+use crate::tui::app::{AppRequest, ViewKind};
 
 pub struct FeedsView<'row> {
     table: StatefulTable<'row, IndexedRow<Feed>>,
@@ -19,7 +19,7 @@ pub struct FeedsView<'row> {
 }
 impl<'row> FeedsView<'row> {
     pub fn new(fm: &FeedManager, filter: Filter, sorter: Sorter<Feed>, state: TableState) -> Self {
-        let table = StatefulTable::new_indexed(fm.get_feeds(&filter, &sorter), state);
+        let table = new_indexed_table(fm.get_feeds(&filter, &sorter), state);
         FeedsView {
             table,
             filter,
@@ -27,10 +27,13 @@ impl<'row> FeedsView<'row> {
         }
     }
 }
-impl<'row> View for FeedsView<'row> {
+impl View for FeedsView<'_> {
     type Model = FeedManager;
     type Signal = AppRequest;
-
+    type Kind = ViewKind;
+    fn kind(&self) -> Self::Kind {
+        ViewKind::Feeds
+    }
     fn title(&self) -> String {
         format!("rrss - feeds")
     }
@@ -45,7 +48,7 @@ impl<'row> View for FeedsView<'row> {
     }
 
     fn update(&mut self, ev: &Event) -> AppRequest {
-        handle_table_events(&mut self.table, ev);
+        self.table.update(ev);
 
         match ev {
             Event::Key(ev) => match ev.code {

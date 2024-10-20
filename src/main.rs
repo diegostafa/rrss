@@ -5,7 +5,7 @@ use clap::Parser;
 use cli::{Cli, Commands, QueryCommand};
 use config::{FromPartialToml, Sources};
 use feed_manager::{FeedManager, TaskStatus};
-use globals::SOURCES_FILE;
+use globals::{CONFIG, SOURCES_FILE};
 use model::filter::Filter;
 use model::sorter::Sorter;
 use tui::app::App;
@@ -25,14 +25,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut fm = FeedManager::new(sources);
 
     match args.command {
-        Commands::Dry => {}
+        Commands::Dry => {
+            CONFIG.max_concurrency; // force loading
+        }
         Commands::Fetch => {
             async_std::task::block_on(fm.update_feeds(&Filter::new()));
             match fm.poll_update_feeds() {
                 TaskStatus::None | TaskStatus::Running => unreachable!(),
-                TaskStatus::Error => eprintln!("Error updating feeds"),
+                TaskStatus::Error(e) => eprintln!("{e}"),
                 TaskStatus::Done((errs, save_handle)) => {
-                    println!("{:?}", errs);
+                    eprintln!("{:?}", errs);
                     save_handle.join().expect("failed to save feeds");
                 }
             }
