@@ -1,9 +1,8 @@
 use std::fmt::Display;
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ratatui_view::keymap::{KeyMap, ShortCut};
+use ratatui_helpers::keymap::{KeyMap, ShortCut};
 
-#[derive(PartialEq, Eq, Hash)]
 pub enum AppCommand {
     QuitView,
     Search,
@@ -22,13 +21,12 @@ impl Display for AppCommand {
 pub struct AppKeyMap(pub Vec<ShortCut<AppCommand>>);
 impl KeyMap for AppKeyMap {
     type Command = AppCommand;
-    fn get_keymap(&self) -> &[ShortCut<AppCommand>] {
+    fn get_shortcuts(&self) -> &[ShortCut<Self::Command>] {
         &self.0
     }
-}
-impl Default for AppKeyMap {
+
     fn default() -> Self {
-        Self(Vec::from([
+        Self(vec![
             ShortCut(
                 AppCommand::QuitView,
                 vec![
@@ -44,6 +42,10 @@ impl Default for AppKeyMap {
                     KeyEvent::new(KeyCode::Char('h'), KeyModifiers::NONE),
                 ],
             ),
-        ]))
+            ShortCut(
+                AppCommand::Search,
+                vec![KeyEvent::new(KeyCode::Char('/'), KeyModifiers::NONE)],
+            ),
+        ])
     }
 }

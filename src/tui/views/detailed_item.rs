@@ -1,21 +1,22 @@
 use ratatui::crossterm::event::{Event, KeyCode};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::widgets::{Block, Borders};
+use ratatui::widgets::Borders;
 use ratatui::Frame;
-use ratatui_view::view::View;
+use ratatui_helpers::view::View;
 
 use crate::feed_manager::FeedManager;
 use crate::model::filter::Filter;
 use crate::model::models::Item;
 use crate::tui::app::{AppRequest, ViewKind};
-use crate::tui::widgets::multiline_paragraph::MultilineParagraph;
+use crate::tui::theme::StyledWidget;
+use crate::tui::widgets::scrollable_paragraph::ScrollableParagraph;
 use crate::tui::widgets::UiObject;
 
 pub struct DetailedItemView<'a> {
     items: Vec<Item>,
     item_idx: usize,
-    header: MultilineParagraph<'a>,
-    content: MultilineParagraph<'a>,
+    header: ScrollableParagraph<'a>,
+    content: ScrollableParagraph<'a>,
 
     layout: Layout,
 }
@@ -24,8 +25,8 @@ impl DetailedItemView<'_> {
         let mut view = Self {
             items,
             item_idx: curr_idx,
-            header: MultilineParagraph::new("".to_string()),
-            content: MultilineParagraph::new("".to_string()),
+            header: ScrollableParagraph::new("".to_string()),
+            content: ScrollableParagraph::new("".to_string()),
             layout: Layout::default()
                 .direction(Direction::Vertical)
                 .constraints(vec![
@@ -42,8 +43,8 @@ impl DetailedItemView<'_> {
     }
     fn update_view(&mut self) {
         let item = self.item().clone();
-        self.header = MultilineParagraph::new(item.title.clone().unwrap_or_default());
-        self.content = MultilineParagraph::new(
+        self.header = ScrollableParagraph::new(item.title.clone().unwrap_or_default());
+        self.content = ScrollableParagraph::new(
             item.content
                 .or(item.summary)
                 .or(item.media.first().and_then(|c| c.description.clone()))
@@ -75,7 +76,7 @@ impl View for DetailedItemView<'_> {
                     if let Some(link) = self.item().links.first()
                         && let Err(e) = open::that_detached(&link.href)
                     {
-                        return AppRequest::OpenNotificationView(e.to_string());
+                        return AppRequest::OpenPopupView(e.to_string());
                     }
                 }
                 KeyCode::Char('l') => {
@@ -90,7 +91,7 @@ impl View for DetailedItemView<'_> {
                     return AppRequest::RefreshView;
                 }
                 KeyCode::Char('i') => {
-                    return AppRequest::OpenNotificationView(format!(
+                    return AppRequest::OpenPopupView(format!(
                         "TITLE: {}\nDATE: {}",
                         self.item().title.clone().unwrap_or_default(),
                         self.item().posted.unwrap_or_default(),
@@ -106,7 +107,7 @@ impl View for DetailedItemView<'_> {
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {
         let layout = self.layout.split(area);
         self.header.draw(f, layout[0]);
-        f.render_widget(Block::default().borders(Borders::BOTTOM), layout[1]);
+        f.render_widget(StyledWidget::block().borders(Borders::BOTTOM), layout[1]);
         self.content.draw(f, layout[2]);
     }
 }

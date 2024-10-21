@@ -13,7 +13,7 @@ pub fn format_date(date: DateTime<Utc>) -> String {
     let delta_days = (Utc::now() - date).num_days();
     match delta_days {
         0 => HumanTime::from(date).to_text_en(Accuracy::Rough, Tense::Past),
-        _ if delta_days < CONFIG.max_days_until_old as i64 => {
+        _ if delta_days < CONFIG.relative_time_threshold as i64 => {
             format!("{}, {}", HumanTime::from(date), date.format("%a, %H:%M"))
         }
         _ => date.format(CONFIG.theme.date_format.as_str()).to_string(),

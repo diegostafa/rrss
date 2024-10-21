@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use ratatui::layout::Constraint;
 use ratatui::style::{Color, Style, Stylize};
-use ratatui_view::stateful_table::Tabular;
+use ratatui_helpers::stateful_table::Tabular;
 use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
 
@@ -21,7 +21,6 @@ pub struct FeedMetrics {
     pub hits: usize,
     pub is_recent: bool,
 }
-impl FeedMetrics {}
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FeedId(pub String);
 impl Display for FeedId {
@@ -80,10 +79,7 @@ impl Feed {
         self.data.as_ref().map(|d| &d.items)
     }
     pub fn items_mut(&mut self) -> Option<&mut Vec<Item>> {
-        if let Some(data) = &mut self.data {
-            return Some(&mut data.items);
-        }
-        None
+        self.data.as_mut().map(|d| &mut d.items)
     }
     pub fn clear_items(&mut self) {
         if let Some(items) = self.items_mut() {
@@ -97,7 +93,7 @@ impl Feed {
         if let Some(feed) = &self.data {
             self.metrics.latest_item_date = feed.items.iter().map(|i| i.posted).max().flatten();
             self.metrics.is_recent = self.metrics.latest_item_date.map_or(false, |date| {
-                (Utc::now() - date).num_days() < CONFIG.max_days_until_old as i64
+                (Utc::now() - date).num_days() < CONFIG.relative_time_threshold as i64
             })
         }
     }
@@ -171,7 +167,7 @@ impl Tabular for Feed {
     fn style(&self) -> Style {
         let mut style = Style::default();
         if self.tot_unread() > 0 {
-            style = style.fg(Color::Yellow);
+            style = style.fg(Color::from_str(&CONFIG.theme.fg_unread_color).unwrap());
         }
         if self.metrics.is_recent {
             style = style.italic();

@@ -5,10 +5,13 @@ max_concurrency = 20
 
 [theme]
 date_format = "%a %H:%M %d-%m-%Y"
-borders = true
-border_color = "red"
-fg_selected_color = "white"
+borders = false
+column_spacing = 2
+unread_marker = '•'
 # ...
+
+# [keybinds]
+# cancel = ["todo"]
 ```
 
 ```toml
@@ -24,3 +27,8 @@ max_items = 100
 ```
 
 ![demo](./docs/demo/screenshot.png)
+
+todos
+- sort by columns
+- global search in all items and feeds
+- export sources

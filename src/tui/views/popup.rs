@@ -1,25 +1,26 @@
 use ratatui::layout::Rect;
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
+use ratatui::widgets::{Paragraph, Wrap};
 use ratatui::Frame;
-use ratatui_view::view::View;
+use ratatui_helpers::view::View;
 
 use crate::feed_manager::FeedManager;
 use crate::tui::app::{AppRequest, ViewKind};
 use crate::tui::centered_rect;
+use crate::tui::theme::StyledWidget;
 
-pub struct NotificationView<'a> {
+pub struct PopupView<'a> {
     p: Paragraph<'a>,
 }
-impl NotificationView<'_> {
+impl PopupView<'_> {
     pub fn new(msg: String) -> Self {
         Self {
             p: Paragraph::new(msg)
                 .wrap(Wrap { trim: true })
-                .block(Block::default().borders(Borders::ALL)),
+                .block(StyledWidget::block()),
         }
     }
 }
-impl View for NotificationView<'_> {
+impl View for PopupView<'_> {
     type Model = FeedManager;
     type Signal = AppRequest;
     type Kind = ViewKind;

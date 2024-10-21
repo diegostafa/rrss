@@ -16,14 +16,11 @@ pub struct SerializableFeed {
 }
 impl SerializableFeed {
     pub fn try_from_feed(feed: &Feed) -> Option<Self> {
-        if let Some(data) = &feed.data {
-            return Some(Self {
-                id: feed.id().clone(),
-                data: data.clone(),
-                metrics: feed.metrics.clone(),
-            });
-        }
-        None
+        feed.data.as_ref().map(|data| Self {
+            id: feed.id().clone(),
+            data: data.clone(),
+            metrics: feed.metrics.clone(),
+        })
     }
 }
 

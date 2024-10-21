@@ -2,13 +2,13 @@ use ratatui::crossterm::event::Event;
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
-use ratatui_view::stateful_table::{IndexedRow, StatefulTable};
-use ratatui_view::view::View;
+use ratatui_helpers::stateful_table::{IndexedRow, StatefulTable};
+use ratatui_helpers::view::View;
 
-use super::new_indexed_table;
 use crate::feed_manager::FeedManager;
 use crate::model::models::Shortcut;
 use crate::tui::app::{AppRequest, ViewKind};
+use crate::tui::theme::StyledWidget;
 
 pub struct HelpView<'row> {
     table: StatefulTable<'row, IndexedRow<Shortcut>>,
@@ -16,7 +16,7 @@ pub struct HelpView<'row> {
 impl HelpView<'_> {
     pub fn new() -> Self {
         Self {
-            table: new_indexed_table(
+            table: StyledWidget::indexed_table(
                 vec![
                     Shortcut {
                         name: "Quit".to_string(),
@@ -36,6 +36,7 @@ impl HelpView<'_> {
                     },
                 ],
                 TableState::new().with_selected(0),
+                None,
             ),
         }
     }

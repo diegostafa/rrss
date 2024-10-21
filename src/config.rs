@@ -1,40 +1,10 @@
 use std::hash::Hash;
-use std::{fs, io};
 
-use directories::ProjectDirs;
 use itertools::Itertools;
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 use crate::cache::SerializableFeed;
-use crate::globals::PROJECT_NAME;
 use crate::model::models::{Feed, FeedId};
-
-pub trait FromPartialToml: Sized {
-    type Partial: DeserializeOwned;
-
-    fn partial_to_full(val: Self::Partial) -> Self;
-    fn parse(file: &str) -> Result<Self, io::Error> {
-        let proj = ProjectDirs::from("", "", PROJECT_NAME).unwrap();
-        let file = proj.config_dir().join(file);
-        let toml = toml::from_str(&fs::read_to_string(file)?);
-        match toml {
-            Ok(toml) => Ok(Self::partial_to_full(toml)),
-            Err(e) => Err(io::Error::new(io::ErrorKind::Other, e)),
-        }
-    }
-}
-
-#[derive(Deserialize, Default, Debug)]
-pub struct PartialKeybinds {
-    pub cancel: Option<Vec<String>>,
-    pub submit: Option<Vec<String>>,
-}
-#[derive(Deserialize, Default, Debug)]
-pub struct Keybinds {
-    pub cancel: Vec<String>,
-    pub submit: Vec<String>,
-}
 
 #[derive(Deserialize, Default)]
 pub struct PartialTheme {
@@ -52,6 +22,7 @@ pub struct PartialTheme {
     bg_read_color: Option<String>,
     bg_filterd_color: Option<String>,
 
+    column_spacing: Option<u16>,
     border_color: Option<String>,
     borders: Option<bool>,
     rounded_borders: Option<bool>,
@@ -76,6 +47,7 @@ pub struct Theme {
     pub bg_read_color: String,
     pub bg_filterd_color: String,
 
+    pub column_spacing: u16,
     pub border_color: String,
     pub borders: bool,
     pub rounded_borders: bool,
@@ -87,15 +59,15 @@ pub struct Theme {
 impl From<PartialTheme> for Theme {
     fn from(val: PartialTheme) -> Self {
         Self {
-            fg_header_color: val.fg_header_color.unwrap_or("white".to_string()),
-            fg_selected_color: val.fg_selected_color.unwrap_or("black".to_string()),
+            fg_header_color: val.fg_header_color.unwrap_or("blue".to_string()),
+            fg_selected_color: val.fg_selected_color.unwrap_or("white".to_string()),
             fg_normal_color: val.fg_normal_color.unwrap_or("white".to_string()),
             fg_unread_color: val.fg_unread_color.unwrap_or("yellow".to_string()),
             fg_read_color: val.fg_read_color.unwrap_or("white".to_string()),
             fg_filtered_color: val.fg_filtered_color.unwrap_or("darkgray".to_string()),
 
-            bg_header_color: val.bg_header_color.unwrap_or("green".to_string()),
-            bg_selected_color: val.bg_selected_color.unwrap_or("yellow".to_string()),
+            bg_header_color: val.bg_header_color.unwrap_or("black".to_string()),
+            bg_selected_color: val.bg_selected_color.unwrap_or("darkgray".to_string()),
             bg_normal_color: val.bg_normal_color.unwrap_or("black".to_string()),
             bg_unread_color: val.bg_unread_color.unwrap_or("black".to_string()),
             bg_read_color: val.bg_read_color.unwrap_or("black".to_string()),
@@ -108,32 +80,28 @@ impl From<PartialTheme> for Theme {
             unread_marker: val.unread_marker.unwrap_or('*'),
             read_marker: val.read_marker.unwrap_or(' '),
             scrollbars: val.scrollbars.unwrap_or(false),
+            column_spacing: val.column_spacing.unwrap_or(1),
         }
     }
 }
 
 #[derive(Deserialize)]
 pub struct PartialConfig {
-    max_days_until_old: Option<u32>,
+    relative_time_threshold: Option<u32>,
     max_concurrency: Option<usize>,
-    keybinds: Option<Keybinds>,
     theme: Option<PartialTheme>,
 }
 #[derive(Deserialize)]
 pub struct Config {
-    pub max_days_until_old: u32,
+    pub relative_time_threshold: u32,
     pub max_concurrency: usize,
-    pub keybinds: Keybinds,
     pub theme: Theme,
 }
-impl FromPartialToml for Config {
-    type Partial = PartialConfig;
-
-    fn partial_to_full(val: PartialConfig) -> Self {
+impl From<PartialConfig> for Config {
+    fn from(val: PartialConfig) -> Self {
         Self {
             max_concurrency: val.max_concurrency.unwrap_or(5),
-            keybinds: val.keybinds.unwrap_or_default(),
-            max_days_until_old: val.max_days_until_old.unwrap_or(3),
+            relative_time_threshold: val.relative_time_threshold.unwrap_or(3),
             theme: Theme::from(val.theme.unwrap_or_default()),
         }
     }
@@ -223,10 +191,8 @@ impl Sources {
             .collect()
     }
 }
-impl FromPartialToml for Sources {
-    type Partial = PartialSources;
-
-    fn partial_to_full(val: PartialSources) -> Self {
+impl From<PartialSources> for Sources {
+    fn from(val: PartialSources) -> Self {
         if let Some(sources) = val.sources {
             let sources = sources.into_iter().map(FeedSource::from).collect_vec();
             let prev_size = sources.len();

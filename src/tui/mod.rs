@@ -7,9 +7,10 @@ use ratatui::prelude::CrosstermBackend;
 use ratatui::{crossterm, Terminal};
 
 pub mod app;
-pub mod keymaps;
-pub mod views;
-pub mod widgets;
+mod keymaps;
+mod theme;
+mod views;
+mod widgets;
 
 pub fn try_init_term() -> Result<Terminal<CrosstermBackend<io::Stdout>>, Box<io::Error>> {
     let mut stdout = io::stdout();

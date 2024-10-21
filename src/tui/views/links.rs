@@ -2,20 +2,20 @@ use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::{Clear, TableState};
 use ratatui::Frame;
-use ratatui_view::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
-use ratatui_view::view::View;
+use ratatui_helpers::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
+use ratatui_helpers::view::View;
 
-use super::new_indexed_table;
 use crate::feed_manager::FeedManager;
 use crate::model::models::Link;
 use crate::tui::app::{AppRequest, ViewKind};
+use crate::tui::theme::StyledWidget;
 
 pub struct LinksView<'row> {
     table: StatefulTable<'row, IndexedRow<Link>>,
 }
 impl LinksView<'_> {
     pub fn new(links: Vec<Link>) -> Self {
-        let table = new_indexed_table(links, TableState::new().with_selected(0));
+        let table = StyledWidget::indexed_table(links, TableState::new().with_selected(0), None);
         Self { table }
     }
 }

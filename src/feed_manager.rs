@@ -47,16 +47,27 @@ impl FeedManager {
         self.feeds.iter_mut().for_each(Feed::clear_items);
         self.save();
     }
-    pub fn update_feed(&mut self, id: FeedId) -> Option<JoinHandle<()>> {
+    pub fn update_feed(
+        &mut self,
+        id: FeedId,
+        finally: impl FnOnce() + Send + 'static,
+    ) -> Option<JoinHandle<()>> {
         if let Some(feed) = self.get_feed(id) {
             let url = feed.url().to_string();
             let (sx, rx) = async_std::channel::bounded(1);
             self.update_feed_ch = Some(rx);
-            return Some(async_std::task::spawn(Self::fetch_feed(sx, url)));
+            return Some(async_std::task::spawn(async {
+                Self::fetch_feed(sx, url).await;
+                finally();
+            }));
         }
         None
     }
-    pub fn update_feeds(&mut self, filter: &Filter) -> JoinHandle<()> {
+    pub fn update_feeds(
+        &mut self,
+        filter: &Filter,
+        finally: impl FnOnce() + Send + 'static,
+    ) -> JoinHandle<()> {
         let urls = self
             .get_feeds(filter, &Sorter::NONE)
             .iter()
@@ -65,7 +76,10 @@ impl FeedManager {
 
         let (sx, rx) = async_std::channel::bounded(1);
         self.update_feeds_ch = Some(rx);
-        async_std::task::spawn(Self::fetch_feeds(sx, urls))
+        async_std::task::spawn(async {
+            Self::fetch_feeds(sx, urls).await;
+            finally();
+        })
     }
     pub fn poll_update_feeds(
         &mut self,

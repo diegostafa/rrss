@@ -2,15 +2,15 @@ use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
-use ratatui_view::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
-use ratatui_view::view::View;
+use ratatui_helpers::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
+use ratatui_helpers::view::View;
 
-use super::new_indexed_table;
 use crate::feed_manager::FeedManager;
 use crate::model::filter::Filter;
 use crate::model::models::Item;
 use crate::model::sorter::Sorter;
 use crate::tui::app::{AppRequest, ViewKind};
+use crate::tui::theme::StyledWidget;
 
 pub struct ItemsView<'row> {
     table: StatefulTable<'row, IndexedRow<Item>>,
@@ -20,7 +20,7 @@ pub struct ItemsView<'row> {
 impl ItemsView<'_> {
     pub fn new(fm: &FeedManager, filter: Filter, sorter: Sorter<Item>, state: TableState) -> Self {
         ItemsView {
-            table: new_indexed_table(fm.get_items(&filter, &sorter), state),
+            table: StyledWidget::indexed_table(fm.get_items(&filter, &sorter), state, None),
             filter,
             sorter,
         }

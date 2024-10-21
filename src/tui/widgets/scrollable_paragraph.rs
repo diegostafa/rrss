@@ -5,12 +5,12 @@ use ratatui::Frame;
 
 use super::UiObject;
 
-pub struct MultilineParagraph<'a> {
+pub struct ScrollableParagraph<'a> {
     paragraph: Paragraph<'a>,
     scroll_offset: u16,
     area: Rect,
 }
-impl MultilineParagraph<'_> {
+impl ScrollableParagraph<'_> {
     pub fn new(content: String) -> Self {
         Self {
             paragraph: Paragraph::new(content).wrap(Wrap::default()),
@@ -23,7 +23,7 @@ impl MultilineParagraph<'_> {
     }
 }
 
-impl UiObject for MultilineParagraph<'_> {
+impl UiObject for ScrollableParagraph<'_> {
     fn draw(&mut self, f: &mut Frame, area: Rect) {
         self.area = area;
         f.render_widget(&self.paragraph, area);
