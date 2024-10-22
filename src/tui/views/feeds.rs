@@ -37,7 +37,6 @@ impl View for FeedsView<'_> {
     fn title(&self) -> String {
         format!("rrss - feeds")
     }
-
     fn refresh(&mut self, fm: &FeedManager) {
         *self = Self::new(
             fm,
@@ -46,18 +45,12 @@ impl View for FeedsView<'_> {
             self.table.state().clone(),
         );
     }
-
     fn update(&mut self, ev: &Event) -> AppRequest {
         self.table.update(ev);
-
         match ev {
             Event::Key(ev) => match ev.code {
-                KeyCode::Char('f') => {
-                    return AppRequest::UpdateFeeds(self.filter.clone());
-                }
-                KeyCode::Char('t') => {
-                    return AppRequest::OpenTagView(Filter::new(), Tag::BY_NAME);
-                }
+                KeyCode::Char('f') => return AppRequest::UpdateFeeds(self.filter.clone()),
+                KeyCode::Char('t') => return AppRequest::OpenTagView(Filter::new(), Tag::BY_NAME),
                 KeyCode::Char('r') => {
                     if let Some(id) = self.table.selected_value() {
                         return AppRequest::UpdateFeed(id.clone());
@@ -111,7 +104,6 @@ impl View for FeedsView<'_> {
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {
         self.table.draw(f, area);
     }
-
     fn on_prompt_submit(&mut self, _value: String) -> AppRequest {
         if let Some(id) = self.table.selected_value() {
             return AppRequest::OpenItemsView(id.clone(), Item::BY_POSTED_REV);

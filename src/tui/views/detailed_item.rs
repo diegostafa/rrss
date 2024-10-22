@@ -17,7 +17,6 @@ pub struct DetailedItemView<'a> {
     item_idx: usize,
     header: ScrollableParagraph<'a>,
     content: ScrollableParagraph<'a>,
-
     layout: Layout,
 }
 impl DetailedItemView<'_> {
@@ -57,11 +56,9 @@ impl View for DetailedItemView<'_> {
     type Model = FeedManager;
     type Signal = AppRequest;
     type Kind = ViewKind;
-
     fn kind(&self) -> Self::Kind {
         ViewKind::DetailedItem
     }
-
     fn title(&self) -> String {
         format!("{}", self.item().title.clone().unwrap_or_default())
     }
@@ -103,7 +100,6 @@ impl View for DetailedItemView<'_> {
         }
         AppRequest::None
     }
-
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {
         let layout = self.layout.split(area);
         self.header.draw(f, layout[0]);
