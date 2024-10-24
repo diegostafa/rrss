@@ -31,7 +31,10 @@ impl View for PromptView {
     fn update(&mut self, ev: &Event) -> AppRequest {
         match ev {
             Event::Key(key) => match key.code {
-                KeyCode::Esc => return AppRequest::CloseSearchDock,
+                KeyCode::Esc => {
+                    return AppRequest::ChangePromptValue("".to_string())
+                        + AppRequest::CloseSearchDock
+                }
                 KeyCode::Enter => {
                     return AppRequest::CloseSearchDock
                         + AppRequest::SubmitPromptValue(self.input.value().to_string())
@@ -45,7 +48,6 @@ impl View for PromptView {
                 return AppRequest::ChangePromptValue(self.input.value().to_string());
             }
         }
-
         AppRequest::None
     }
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {

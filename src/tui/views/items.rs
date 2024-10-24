@@ -18,7 +18,15 @@ pub struct ItemsView<'row> {
     sorter: Sorter<Item>,
 }
 impl ItemsView<'_> {
-    pub fn new(fm: &FeedManager, filter: Filter, sorter: Sorter<Item>, state: TableState) -> Self {
+    pub fn new(
+        fm: &FeedManager,
+        filter: Filter,
+        sorter: Sorter<Item>,
+        mut state: TableState,
+    ) -> Self {
+        if state.selected().is_none() {
+            state.select(Some(0));
+        }
         ItemsView {
             table: StyledWidget::indexed_table(fm.get_items(&filter, &sorter), state, None),
             filter,

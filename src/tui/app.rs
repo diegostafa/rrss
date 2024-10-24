@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use ratatui::crossterm::event::{self, Event};
 use ratatui::widgets::TableState;
+use ratatui_helpers::dock::{Dock, DockPosition};
 use ratatui_helpers::keymap::KeyMap;
 use ratatui_helpers::view_controller::ViewController;
 
@@ -14,6 +15,7 @@ use super::views::help::HelpView;
 use super::views::items::ItemsView;
 use super::views::links::LinksView;
 use super::views::popup::PopupView;
+use super::views::prompt::PromptView;
 use super::views::quit::QuitView;
 use super::views::tags::TagView;
 use super::{try_init_term, try_release_term};
@@ -63,7 +65,7 @@ pub enum AppRequest {
 }
 impl AppRequest {
     fn or_else<T: FnOnce() -> Self>(self, other: T) -> Self {
-        if matches!(self, AppRequest::None) {
+        if let AppRequest::None = self {
             return other();
         }
         self
@@ -73,6 +75,7 @@ impl Add for AppRequest {
     type Output = Self;
     fn add(self, other: Self) -> Self {
         match (self.clone(), other.clone()) {
+            (AppRequest::None, req) | (req, AppRequest::None) => req,
             (AppRequest::Chain(mut reqs1), AppRequest::Chain(mut reqs2)) => {
                 reqs1.append(&mut reqs2);
                 AppRequest::Chain(reqs1)
@@ -112,39 +115,62 @@ impl App {
         self.vc.curr().set_title();
         while self.vc.is_running() {
             let _ = term.draw(|f| self.vc.draw(f, f.area()))?;
-            if event::poll(Duration::from_millis(200))? {
-                let ev = &event::read()?;
-                let req = self
-                    .common_update(ev)
-                    .or_else(|| self.vc.curr_mut().update(ev));
-                self.handle_request(req);
-            }
-            let req = self.poll_tasks();
+            let req = self.update() + self.poll_tasks();
             self.handle_request(req);
         }
         try_release_term(term)
     }
 
-    fn common_update(&mut self, ev: &Event) -> AppRequest {
-        match ev {
-            Event::Key(ev) => match self.keymap.get_command(ev) {
-                None => return AppRequest::None,
-                Some(cmd) => match cmd {
-                    AppCommand::QuitView => return AppRequest::CloseView,
-                    AppCommand::Help => return AppRequest::OpenHelpView,
-                    AppCommand::Search => return AppRequest::OpenSearchDock,
-                },
-            },
-            _ => {}
-        };
+    fn update(&mut self) -> AppRequest {
+        if let Ok(true) = event::poll(Duration::from_millis(200)) {
+            let ev = &event::read().unwrap();
+            return self
+                .vc
+                .update_dock(ev)
+                .or_else(|| match ev {
+                    Event::Key(ev) => match self.keymap.get_command(ev) {
+                        None => AppRequest::None,
+                        Some(cmd) => match cmd {
+                            AppCommand::QuitView => AppRequest::CloseView,
+                            AppCommand::Help => AppRequest::OpenHelpView,
+                            AppCommand::Search => AppRequest::OpenSearchDock,
+                        },
+                    },
+                    _ => AppRequest::None,
+                })
+                .or_else(|| self.vc.curr_mut().update(ev));
+        }
         AppRequest::None
+    }
+
+    fn poll_tasks(&mut self) -> AppRequest {
+        let r1 = match self.fm.poll_update_feed() {
+            TaskStatus::Error(e) => {
+                self.vc.show_status(e);
+                AppRequest::None
+            }
+            TaskStatus::Done(_) => AppRequest::RefreshView,
+            _ => AppRequest::None,
+        };
+        let r2 = match self.fm.poll_update_feeds() {
+            TaskStatus::Error(e) => AppRequest::OpenPopupView(format!("{:?}", e)),
+            TaskStatus::Done((errs, _)) => {
+                if errs.is_empty() {
+                    AppRequest::RefreshView
+                } else {
+                    AppRequest::RefreshView + AppRequest::OpenPopupView(format!("{:?}", errs))
+                }
+            }
+            _ => AppRequest::None,
+        };
+        r1 + r2
     }
 
     fn handle_request(&mut self, req: AppRequest) {
         match req {
             AppRequest::None => {}
             AppRequest::Chain(reqs) => reqs.into_iter().for_each(|req| self.handle_request(req)),
-            AppRequest::RefreshView => self.vc.curr_mut().refresh(&self.fm),
+            AppRequest::RefreshView => self.vc.refresh(&self.fm),
             AppRequest::CloseView => {
                 self.vc.pop();
                 self.handle_request(AppRequest::RefreshView);
@@ -241,16 +267,12 @@ impl App {
                     }
                 }
             }
-            AppRequest::CloseSearchDock => self.vc.hide_dock(),
-            AppRequest::OpenSearchDock => {
-                // self.vc.set_dock(Dock {
-                //     position: DockPosition::Bottom,
-                //     size: 1,
-                //     view: Box::new(PromptView::new("Search for: ".to_string())),
-                //     is_hidden: false,
-                // });
-                todo!();
-            }
+            AppRequest::CloseSearchDock => self.vc.remove_dock(),
+            AppRequest::OpenSearchDock => self.vc.set_dock(Dock {
+                position: DockPosition::Bottom,
+                size: 1,
+                view: Box::new(PromptView::new("Search for: ".to_string())),
+            }),
 
             AppRequest::SubmitPromptValue(value) => {
                 let req = self.vc.curr_mut().on_prompt_submit(value);
@@ -261,27 +283,5 @@ impl App {
                 self.handle_request(req + AppRequest::RefreshView);
             }
         }
-    }
-    fn poll_tasks(&mut self) -> AppRequest {
-        let r1 = match self.fm.poll_update_feed() {
-            TaskStatus::Error(e) => {
-                self.vc.show_status(e);
-                AppRequest::None
-            }
-            TaskStatus::Done(_) => AppRequest::RefreshView,
-            _ => AppRequest::None,
-        };
-        let r2 = match self.fm.poll_update_feeds() {
-            TaskStatus::Error(e) => AppRequest::OpenPopupView(format!("{:?}", e)),
-            TaskStatus::Done((errs, _)) => {
-                if errs.is_empty() {
-                    AppRequest::RefreshView
-                } else {
-                    AppRequest::RefreshView + AppRequest::OpenPopupView(format!("{:?}", errs))
-                }
-            }
-            _ => AppRequest::None,
-        };
-        r1 + r2
     }
 }

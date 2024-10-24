@@ -19,7 +19,15 @@ pub struct TagView<'row> {
     sorter: Sorter<Tag>,
 }
 impl TagView<'_> {
-    pub fn new(fm: &FeedManager, filter: Filter, sorter: Sorter<Tag>, state: TableState) -> Self {
+    pub fn new(
+        fm: &FeedManager,
+        filter: Filter,
+        sorter: Sorter<Tag>,
+        mut state: TableState,
+    ) -> Self {
+        if state.selected().is_none() {
+            state.select(Some(0));
+        }
         let table = StyledWidget::indexed_table(fm.get_tags(&filter, &sorter), state, None);
         Self {
             table,
