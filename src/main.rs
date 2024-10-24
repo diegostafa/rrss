@@ -1,4 +1,5 @@
 #![feature(let_chains)]
+#![warn(unused_results)]
 
 use cache::CachedFeeds;
 use clap::Parser;
@@ -27,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match args.command {
         Commands::Dry => {
-            CONFIG.max_concurrency; // force loading
+            let _ = CONFIG.max_concurrency; // force loading
         }
         Commands::Fetch => {
             async_std::task::block_on(fm.update_feeds(&Filter::new(), || {}));

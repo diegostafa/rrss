@@ -16,17 +16,15 @@ crossterm = "0.28.1"
 directories = "5.0.1"
 feed-rs = "2.0.0"
 futures = "0.3.30"
-html2text = "0.12.5"
+html2text = "0.13.2"
 itertools = "0.13.0"
 lazy_static = "1.4.0"
-mime = "0.3.17"
 open = "5.1.4"
-ratatui = { version = "0.28.1", features = ["crossterm"] }
+ratatui = { version = "0.29.0", features = ["crossterm"] }
 ratatui-helpers = { path = "../ratatui-helpers" }
 regex = "1.10.5"
 serde = { version = "1.0.199", features = ["derive"] }
 serde_with = { version = "3.8.1", features = ["chrono"] }
-strum = "0.26.3"
 toml = "0.8.12"
 unicode-width = "0.2.0"
 ureq = "2.10.1"

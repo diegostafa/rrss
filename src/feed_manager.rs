@@ -40,12 +40,12 @@ impl FeedManager {
             update_feeds_ch: None,
             update_feed_ch: None,
         };
-        fm.save();
+        let _ = fm.save();
         fm
     }
     pub fn clear_items(&mut self) {
         self.feeds.iter_mut().for_each(Feed::clear_items);
-        self.save();
+        let _ = self.save();
     }
     pub fn update_feed(
         &mut self,
@@ -120,7 +120,7 @@ impl FeedManager {
                     self.update_feed_ch = None;
                     if let Some(old_feed) = self.get_feed_mut(feed.id) {
                         old_feed.merge_feed(feed.data);
-                        self.save();
+                        let _ = self.save();
                     }
                     TaskStatus::Done(())
                 }
@@ -137,19 +137,19 @@ impl FeedManager {
     pub fn mark_item_as_read(&mut self, id: ItemId) {
         if let Some(i) = self.get_item_mut(id) {
             i.is_read = true;
-            self.save();
+            let _ = self.save();
         }
     }
     pub fn mark_feed_as_read(&mut self, id: FeedId) {
         self.items_mut(&Filter::new().feed_id(id))
             .iter_mut()
             .for_each(|i| i.is_read = true);
-        self.save();
+        let _ = self.save();
     }
-    pub fn increment_feed_hits(&mut self, id: FeedId) {
+    pub fn increment_feed_hits(&mut self, id: &FeedId) {
         if let Some(feed) = self.get_feed_mut(id.clone()) {
             feed.increment_hits();
-            self.save();
+            let _ = self.save();
         }
     }
     pub fn get_tags(&self, filter: &Filter, sorter: &Sorter<Tag>) -> Vec<Tag> {

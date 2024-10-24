@@ -152,7 +152,7 @@ impl From<PartialFeedSource> for FeedSource {
             tags: value.tags,
             manual_update: value.manual_update.unwrap_or(false),
             filter: value.filter.map(FeedFilter::from),
-            max_items: value.max_items.unwrap_or(10000),
+            max_items: value.max_items.unwrap_or(5000),
         }
     }
 }

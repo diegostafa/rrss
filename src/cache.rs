@@ -31,7 +31,7 @@ impl CachedFeeds {
         fs::create_dir_all(proj.data_dir()).unwrap();
         let path = proj.data_dir().join(CACHE_FILE);
         if !path.exists() {
-            fs::File::create(path).unwrap();
+            let _ = fs::File::create(path).unwrap();
         }
     }
 
@@ -58,7 +58,7 @@ impl CachedFeeds {
         match fs::File::open(path) {
             Ok(mut file) => {
                 let mut data = vec![];
-                file.read_to_end(&mut data)?;
+                let _ = file.read_to_end(&mut data)?;
                 if data.is_empty() {
                     return Ok(Vec::new());
                 }
