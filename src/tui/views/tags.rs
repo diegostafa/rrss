@@ -66,7 +66,6 @@ impl View for TagView<'_> {
                 KeyCode::Enter => {
                     if let Some(id) = self.table.selected_value() {
                         return AppRequest::CloseView
-                            + AppRequest::CloseView
                             + AppRequest::OpenFeedView(
                                 Filter::new().tag_id(id.clone()),
                                 Sorter::NONE,
@@ -84,7 +83,6 @@ impl View for TagView<'_> {
                         && let Some(id) = self.table.selected_value()
                     {
                         return AppRequest::CloseView
-                            + AppRequest::CloseView
                             + AppRequest::OpenFeedView(
                                 Filter::new().tag_id(id.clone()),
                                 Sorter::NONE,

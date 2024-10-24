@@ -1,7 +1,11 @@
+use std::fmt::Display;
+
+use crossterm::event::{KeyEvent, KeyModifiers};
 use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
 use ratatui::Frame;
+use ratatui_helpers::keymap::{KeyMap, ShortCut};
 use ratatui_helpers::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
 use ratatui_helpers::view::View;
 
@@ -16,6 +20,7 @@ pub struct ItemsView<'row> {
     table: StatefulTable<'row, IndexedRow<Item>>,
     filter: Filter,
     sorter: Sorter<Item>,
+    keymap: ItemsKeyMap,
 }
 impl ItemsView<'_> {
     pub fn new(
@@ -31,6 +36,7 @@ impl ItemsView<'_> {
             table: StyledWidget::indexed_table(fm.get_items(&filter, &sorter), state, None),
             filter,
             sorter,
+            keymap: KeyMap::default(),
         }
     }
 }
@@ -55,51 +61,53 @@ impl View for ItemsView<'_> {
     fn update(&mut self, ev: &Event) -> AppRequest {
         self.table.update(ev);
         match ev {
-            Event::Key(ev) => match ev.code {
-                KeyCode::Char('o') => {
-                    if let Some(id) = self.table.selected_value() {
-                        return AppRequest::OpenItem(id.clone());
+            Event::Key(ev) => {
+                if let Some(cmd) = self.keymap.get_command(ev) {
+                    match cmd {
+                        ItemsCommand::OpenItem => {
+                            if let Some(id) = self.table.selected_value() {
+                                return AppRequest::OpenItem(id.clone());
+                            }
+                        }
+                        ItemsCommand::ViewItem => {
+                            if let Some(idx) = self.table.selected_index() {
+                                return AppRequest::OpenDetailedItemView(
+                                    self.filter.clone(),
+                                    self.sorter.clone(),
+                                    idx,
+                                );
+                            }
+                        }
+                        ItemsCommand::UpdateFeed => {
+                            if let Some(feed_id) = &self.filter.feed_id {
+                                return AppRequest::UpdateFeed(feed_id.clone());
+                            }
+                        }
+                        ItemsCommand::ClearFilters => {
+                            self.filter =
+                                Filter::new().feed_id(self.filter.feed_id.clone().unwrap());
+                            return AppRequest::RefreshView;
+                        }
+                        ItemsCommand::MarkItemAsRead => {
+                            if let Some(id) = self.table.selected_value() {
+                                return AppRequest::MarkItemAsRead(id.clone());
+                            }
+                        }
+                        ItemsCommand::ViewItemInfo => {
+                            if let Some(id) = self.table.selected_value() {
+                                return AppRequest::OpenInfoItemView(id.clone());
+                            }
+                        }
+                        ItemsCommand::ViewItemLinks => {
+                            if let Some(id) = self.table.selected_value() {
+                                return AppRequest::OpenLinksView(
+                                    Filter::new().item_id(id.clone()),
+                                );
+                            }
+                        }
                     }
                 }
-                KeyCode::Char('l') => {
-                    if let Some(id) = self.table.selected_value() {
-                        return AppRequest::OpenLinksView(Filter::new().item_id(id.clone()));
-                    }
-                }
-                KeyCode::Char('i') => {
-                    if let Some(id) = self.table.selected_value() {
-                        return AppRequest::OpenInfoItemView(id.clone());
-                    }
-                }
-                KeyCode::Char('r') => {
-                    if let Some(feed_id) = &self.filter.feed_id {
-                        return AppRequest::UpdateFeed(feed_id.clone());
-                    }
-                }
-                KeyCode::Char('a') => {
-                    if let Some(id) = self.table.selected_value() {
-                        return AppRequest::MarkItemAsRead(id.clone());
-                    }
-                }
-                KeyCode::Char('f') => {
-                    self.filter.unfiltered = self.filter.unfiltered.map_or(Some(()), |_| None);
-                    return AppRequest::RefreshView;
-                }
-                KeyCode::Char('c') => {
-                    self.filter = Filter::new().feed_id(self.filter.feed_id.clone().unwrap());
-                    return AppRequest::RefreshView;
-                }
-                KeyCode::Enter => {
-                    if let Some(idx) = self.table.selected_index() {
-                        return AppRequest::OpenDetailedItemView(
-                            self.filter.clone(),
-                            self.sorter.clone(),
-                            idx,
-                        );
-                    }
-                }
-                _ => {}
-            },
+            }
             Event::Mouse(ev) => {
                 let pos = (ev.row, ev.column);
                 match ev.kind {
@@ -134,5 +142,60 @@ impl View for ItemsView<'_> {
     fn on_prompt_change(&mut self, value: String) -> AppRequest {
         self.filter.item_contains = Some(value);
         AppRequest::RefreshView
+    }
+}
+
+#[derive(Debug)]
+pub enum ItemsCommand {
+    OpenItem,
+    ViewItem,
+    UpdateFeed,
+    ClearFilters,
+    MarkItemAsRead,
+    ViewItemInfo,
+    ViewItemLinks,
+}
+impl Display for ItemsCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+pub struct ItemsKeyMap(pub Vec<ShortCut<ItemsCommand>>);
+impl KeyMap for ItemsKeyMap {
+    type Command = ItemsCommand;
+    fn get_shortcuts(&self) -> &[ShortCut<Self::Command>] {
+        &self.0
+    }
+    fn default() -> Self {
+        Self(Vec::from([
+            ShortCut(
+                ItemsCommand::OpenItem,
+                vec![KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE)],
+            ),
+            ShortCut(
+                ItemsCommand::ViewItem,
+                vec![KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)],
+            ),
+            ShortCut(
+                ItemsCommand::UpdateFeed,
+                vec![KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE)],
+            ),
+            ShortCut(
+                ItemsCommand::MarkItemAsRead,
+                vec![KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE)],
+            ),
+            ShortCut(
+                ItemsCommand::ViewItemInfo,
+                vec![KeyEvent::new(KeyCode::Char('i'), KeyModifiers::NONE)],
+            ),
+            ShortCut(
+                ItemsCommand::ClearFilters,
+                vec![KeyEvent::new(KeyCode::Char('c'), KeyModifiers::NONE)],
+            ),
+            ShortCut(
+                ItemsCommand::ViewItemLinks,
+                vec![KeyEvent::new(KeyCode::Char('l'), KeyModifiers::NONE)],
+            ),
+        ]))
     }
 }

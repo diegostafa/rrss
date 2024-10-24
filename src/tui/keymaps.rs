@@ -24,7 +24,6 @@ impl KeyMap for AppKeyMap {
     fn get_shortcuts(&self) -> &[ShortCut<Self::Command>] {
         &self.0
     }
-
     fn default() -> Self {
         Self(vec![
             ShortCut(
