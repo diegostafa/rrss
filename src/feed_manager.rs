@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use async_semaphore::Semaphore;
-use async_std::channel::{Receiver, Sender, TryRecvError};
+use async_std::channel::{Receiver, TryRecvError};
 use async_std::task::JoinHandle;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
@@ -56,8 +56,9 @@ impl FeedManager {
             let url = feed.url().to_string();
             let (sx, rx) = async_std::channel::bounded(1);
             self.update_feed_ch = Some(rx);
-            return Some(async_std::task::spawn(async {
-                Self::fetch_feed(sx, url).await;
+            return Some(async_std::task::spawn(async move {
+                let res = Self::fetch_feed(url).await;
+                sx.send(res).await.unwrap();
                 finally();
             }));
         }
@@ -76,8 +77,9 @@ impl FeedManager {
 
         let (sx, rx) = async_std::channel::bounded(1);
         self.update_feeds_ch = Some(rx);
-        async_std::task::spawn(async {
-            Self::fetch_feeds(sx, urls).await;
+        async_std::task::spawn(async move {
+            let res = Self::fetch_feeds(urls).await;
+            sx.send(res).await.unwrap();
             finally();
         })
     }
@@ -244,14 +246,12 @@ impl FeedManager {
         })
     }
 
-    async fn fetch_feed(sx: Sender<FetchResult>, url: String) {
-        let feed = async_std::task::spawn_blocking(move || Self::_fetch_feed(&url)).await;
-        sx.send(feed).await.unwrap();
+    async fn fetch_feed(url: String) -> FetchResult {
+        async_std::task::spawn_blocking(move || Self::_fetch_feed(&url)).await
     }
-    async fn fetch_feeds(sx: Sender<Vec<FetchResult>>, urls: Vec<String>) {
+    async fn fetch_feeds(urls: Vec<String>) -> Vec<FetchResult> {
         let semaphore = Arc::new(Semaphore::new(CONFIG.max_concurrency));
         let futures = FuturesUnordered::new();
-
         for url in urls {
             let future = async_std::task::spawn({
                 let semaphore = semaphore.clone();
@@ -262,9 +262,7 @@ impl FeedManager {
             });
             futures.push(future);
         }
-
-        let feeds = futures.collect().await;
-        sx.send(feeds).await.unwrap();
+        futures.collect().await
     }
     fn _fetch_feed(url: &str) -> FetchResult {
         // todo: use async http client

@@ -96,7 +96,7 @@ impl View for TagView<'_> {
         AppRequest::None
     }
     fn compute_area(&self, area: Rect) -> Rect {
-        let (width, height) = self.table.size();
+        let (width, height) = self.table.min_area();
         let (width, height) = (width.min(area.width), height.min(area.height));
         centered_rect(area, (width, height.min(20)))
     }

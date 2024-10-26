@@ -12,14 +12,12 @@ pub struct PartialTheme {
     fg_selected_color: Option<String>,
     fg_normal_color: Option<String>,
     fg_unread_color: Option<String>,
-    fg_read_color: Option<String>,
     fg_filtered_color: Option<String>,
 
     bg_header_color: Option<String>,
     bg_selected_color: Option<String>,
     bg_normal_color: Option<String>,
     bg_unread_color: Option<String>,
-    bg_read_color: Option<String>,
     bg_filterd_color: Option<String>,
 
     column_spacing: Option<u16>,
@@ -37,14 +35,12 @@ pub struct Theme {
     pub fg_selected_color: String,
     pub fg_normal_color: String,
     pub fg_unread_color: String,
-    pub fg_read_color: String,
     pub fg_filtered_color: String,
 
     pub bg_header_color: String,
     pub bg_selected_color: String,
     pub bg_normal_color: String,
     pub bg_unread_color: String,
-    pub bg_read_color: String,
     pub bg_filterd_color: String,
 
     pub column_spacing: u16,
@@ -63,14 +59,12 @@ impl From<PartialTheme> for Theme {
             fg_selected_color: val.fg_selected_color.unwrap_or("white".to_string()),
             fg_normal_color: val.fg_normal_color.unwrap_or("white".to_string()),
             fg_unread_color: val.fg_unread_color.unwrap_or("yellow".to_string()),
-            fg_read_color: val.fg_read_color.unwrap_or("white".to_string()),
             fg_filtered_color: val.fg_filtered_color.unwrap_or("darkgray".to_string()),
 
             bg_header_color: val.bg_header_color.unwrap_or("black".to_string()),
             bg_selected_color: val.bg_selected_color.unwrap_or("darkgray".to_string()),
             bg_normal_color: val.bg_normal_color.unwrap_or("black".to_string()),
             bg_unread_color: val.bg_unread_color.unwrap_or("black".to_string()),
-            bg_read_color: val.bg_read_color.unwrap_or("black".to_string()),
             bg_filterd_color: val.bg_filterd_color.unwrap_or("black".to_string()),
 
             border_color: val.border_color.unwrap_or("yellow".to_string()),

@@ -117,6 +117,7 @@ impl App {
             let _ = term.draw(|f| self.vc.draw(f, f.area()))?;
             let req = self.update() + self.poll_tasks();
             self.handle_request(req);
+            self.vc.update_status_line();
         }
         try_release_term(term)
     }

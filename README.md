@@ -1,3 +1,5 @@
+![demo](./docs/demo/screenshot.png)
+
 ```toml
 # $HOME/.config/rrss/config.toml
 
@@ -26,9 +28,6 @@ max_items = 100
 # ...
 ```
 
-![demo](./docs/demo/screenshot.png)
-
 todos
 - sort by columns
 - global search in all items and feeds
-- export sources
