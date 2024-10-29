@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Commands::Tui => App::new(fm).init().run()?,
-        Commands::Clear => fm.clear_items(),
+        Commands::Clear => fm.clear(),
         Commands::Query { query } => match query {
             QueryCommand::ReadCount => {
                 let items = fm.get_items(&Filter::new().read_item(), &Sorter::NONE);

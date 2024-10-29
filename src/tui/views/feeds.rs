@@ -102,6 +102,11 @@ impl View for FeedsView<'_> {
                                 return AppRequest::OpenItemsView(id.clone(), Item::BY_POSTED_REV);
                             }
                         }
+                        FeedsCommand::ClearFeed => {
+                            if let Some(id) = self.table.selected_value() {
+                                return AppRequest::ClearFeed(id.clone());
+                            }
+                        }
                     }
                 }
             }
@@ -149,6 +154,7 @@ pub enum FeedsCommand {
     ViewFeedLinks,
     ViewFeedInfo,
     OpenFeed,
+    ClearFeed,
 }
 impl Display for FeedsCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -194,6 +200,10 @@ impl KeyMap for FeedsKeyMap {
             ShortCut(
                 FeedsCommand::OpenFeed,
                 vec![KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)],
+            ),
+            ShortCut(
+                FeedsCommand::ClearFeed,
+                vec![KeyEvent::new(KeyCode::Char('c'), KeyModifiers::SHIFT)],
             ),
         ]))
     }

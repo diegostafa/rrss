@@ -81,10 +81,8 @@ impl Feed {
     pub fn items_mut(&mut self) -> Option<&mut Vec<Item>> {
         self.data.as_mut().map(|d| &mut d.items)
     }
-    pub fn clear_items(&mut self) {
-        if let Some(items) = self.items_mut() {
-            items.clear();
-        }
+    pub fn clear_data(&mut self) {
+        self.data = None;
     }
     pub fn increment_hits(&mut self) {
         self.metrics.hits += 1;

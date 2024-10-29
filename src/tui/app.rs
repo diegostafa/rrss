@@ -62,6 +62,7 @@ pub enum AppRequest {
     OpenItem(ItemId),
     MarkItemAsRead(ItemId),
     MarkFeedAsRead(FeedId),
+    ClearFeed(FeedId),
 }
 impl AppRequest {
     fn or_else<T: FnOnce() -> Self>(self, other: T) -> Self {
@@ -282,6 +283,12 @@ impl App {
             AppRequest::ChangePromptValue(value) => {
                 let req = self.vc.curr_mut().on_prompt_change(value);
                 self.handle_request(req + AppRequest::RefreshView);
+            }
+            AppRequest::ClearFeed(feed_id) => {
+                if let Some(f) = self.fm.get_feed_mut(feed_id) {
+                    f.clear_data();
+                    self.handle_request(AppRequest::RefreshView);
+                }
             }
         }
     }

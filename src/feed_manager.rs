@@ -43,8 +43,8 @@ impl FeedManager {
         let _ = fm.save();
         fm
     }
-    pub fn clear_items(&mut self) {
-        self.feeds.iter_mut().for_each(Feed::clear_items);
+    pub fn clear(&mut self) {
+        self.feeds.iter_mut().for_each(Feed::clear_data);
         let _ = self.save();
     }
     pub fn update_feed(
