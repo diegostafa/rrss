@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
-use html2text::config;
 
 use crate::globals::CONFIG;
 
@@ -21,7 +20,7 @@ pub fn format_date(date: DateTime<Utc>) -> String {
 }
 
 pub fn html_to_text(html: &str) -> String {
-    config::plain()
+    html2text::config::plain()
         .raw_mode(true)
         .no_table_borders()
         .string_from_read(html.as_bytes(), 1000)

@@ -1,3 +1,5 @@
+// copied from https://github.com/sayanarijit/tui-input
+
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 pub fn to_input_request(evt: &Event) -> Option<InputRequest> {

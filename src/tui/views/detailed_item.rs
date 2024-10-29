@@ -10,7 +10,6 @@ use crate::model::models::Item;
 use crate::tui::app::{AppRequest, ViewKind};
 use crate::tui::theme::StyledWidget;
 use crate::tui::widgets::scrollable_paragraph::ScrollableParagraph;
-use crate::tui::widgets::UiObject;
 
 pub struct DetailedItemView<'a> {
     items: Vec<Item>,
@@ -66,7 +65,7 @@ impl View for DetailedItemView<'_> {
         self.update_view();
     }
     fn update(&mut self, ev: &Event) -> AppRequest {
-        self.content.handle_event(ev);
+        self.content.update(ev);
         match ev {
             Event::Key(ev) => match ev.code {
                 KeyCode::Char('o') => {

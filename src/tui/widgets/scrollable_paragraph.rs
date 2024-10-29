@@ -1,17 +1,16 @@
 use ratatui::crossterm::event::{Event, KeyCode, MouseEventKind};
 use ratatui::layout::{Position, Rect};
+use ratatui::text::Text;
 use ratatui::widgets::{Paragraph, Wrap};
 use ratatui::Frame;
-
-use super::UiObject;
 
 pub struct ScrollableParagraph<'a> {
     paragraph: Paragraph<'a>,
     scroll_offset: u16,
     area: Rect,
 }
-impl ScrollableParagraph<'_> {
-    pub fn new(content: String) -> Self {
+impl<'a> ScrollableParagraph<'a> {
+    pub fn new(content: impl Into<Text<'a>>) -> Self {
         Self {
             paragraph: Paragraph::new(content).wrap(Wrap::default()),
             scroll_offset: 0,
@@ -21,15 +20,11 @@ impl ScrollableParagraph<'_> {
     pub fn scroll_paragraph(&mut self) {
         self.paragraph = self.paragraph.clone().scroll((self.scroll_offset, 0));
     }
-}
-
-impl UiObject for ScrollableParagraph<'_> {
-    fn draw(&mut self, f: &mut Frame, area: Rect) {
+    pub fn draw(&mut self, f: &mut Frame, area: Rect) {
         self.area = area;
         f.render_widget(&self.paragraph, area);
     }
-
-    fn handle_event(&mut self, ev: &Event) {
+    pub fn update(&mut self, ev: &Event) {
         match ev {
             Event::Key(ev) => match ev.code {
                 KeyCode::Char('j') | KeyCode::Down => {
