@@ -2,11 +2,11 @@ use std::fmt::Display;
 
 use crossterm::event::{KeyEvent, KeyModifiers};
 use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use ratatui::layout::Rect;
+use ratatui::layout::{Position, Rect};
 use ratatui::widgets::TableState;
 use ratatui::Frame;
 use ratatui_helpers::keymap::{KeyMap, ShortCut};
-use ratatui_helpers::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
+use ratatui_helpers::stateful_table::{IndexedRow, StatefulTable};
 use ratatui_helpers::view::View;
 
 use crate::feed_manager::FeedManager;
@@ -70,7 +70,7 @@ impl View for ItemsView<'_> {
                             }
                         }
                         ItemsCommand::ViewItem => {
-                            if let Some(idx) = self.table.selected_index() {
+                            if let Some(idx) = self.table.selected_row() {
                                 return AppRequest::OpenDetailedItemView(
                                     self.filter.clone(),
                                     self.sorter.clone(),
@@ -109,11 +109,14 @@ impl View for ItemsView<'_> {
                 }
             }
             Event::Mouse(ev) => {
-                let pos = (ev.row, ev.column);
+                let pos = Position {
+                    x: ev.column,
+                    y: ev.row,
+                };
                 match ev.kind {
                     MouseEventKind::Up(MouseButton::Left) => {
                         if let Some(row) = self.table.screen_coords_to_row_index(pos)
-                            && let Some(idx) = self.table.selected_index()
+                            && let Some(idx) = self.table.selected_row()
                             && row == idx
                         {
                             return AppRequest::OpenDetailedItemView(
@@ -134,7 +137,7 @@ impl View for ItemsView<'_> {
         self.table.draw(f, area)
     }
     fn on_prompt_submit(&mut self, _value: String) -> AppRequest {
-        if let Some(idx) = self.table.selected_index() {
+        if let Some(idx) = self.table.selected_row() {
             return AppRequest::OpenDetailedItemView(self.filter.clone(), self.sorter.clone(), idx);
         }
         AppRequest::None

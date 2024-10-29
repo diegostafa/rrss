@@ -2,11 +2,11 @@ use std::fmt::Display;
 
 use crossterm::event::{KeyEvent, KeyModifiers};
 use ratatui::crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use ratatui::layout::Rect;
+use ratatui::layout::{Position, Rect};
 use ratatui::widgets::TableState;
 use ratatui::Frame;
 use ratatui_helpers::keymap::{KeyMap, ShortCut};
-use ratatui_helpers::stateful_table::{IndexedRow, InteractiveTable, StatefulTable};
+use ratatui_helpers::stateful_table::{IndexedRow, StatefulTable};
 use ratatui_helpers::view::View;
 
 use crate::feed_manager::FeedManager;
@@ -111,11 +111,14 @@ impl View for FeedsView<'_> {
                 }
             }
             Event::Mouse(ev) => {
-                let pos = (ev.row, ev.column);
+                let pos = Position {
+                    x: ev.column,
+                    y: ev.row,
+                };
                 match ev.kind {
                     MouseEventKind::Up(MouseButton::Left) => {
                         if let Some(row) = self.table.screen_coords_to_row_index(pos)
-                            && let Some(idx) = self.table.selected_index()
+                            && let Some(idx) = self.table.selected_row()
                             && row == idx
                             && let Some(id) = self.table.selected_value()
                         {
