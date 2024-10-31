@@ -11,6 +11,7 @@ use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
 
 use super::adapters::{FeedAdapter, FeedTypeAdapter, MediaObjectAdapter};
+use super::sorter::Sorter;
 use crate::config::{FeedFilter, FeedSource};
 use crate::globals::CONFIG;
 use crate::model::format_date;
@@ -44,17 +45,13 @@ impl Feed {
             });
         }
     }
-    pub fn merge_feed(&mut self, new: FeedAdapter) {
+    pub fn merge_feed(&mut self, mut new: FeedAdapter) {
         match &mut self.data {
             Some(old) => {
-                old.items = old
-                    .items
-                    .clone()
-                    .into_iter()
-                    .chain(new.items)
-                    .unique()
-                    .take(self.conf.max_items as usize)
-                    .collect();
+                new.items.retain(|i| !old.items.contains(&i));
+                old.items.extend(new.items);
+                old.items.sort_by(Item::BY_POSTED_REV.0);
+                old.items.truncate(self.conf.max_items as usize);
             }
             _ => self.data = Some(new),
         };
@@ -115,9 +112,20 @@ impl PartialEq for Feed {
 }
 impl Tabular for Feed {
     type Value = FeedId;
+    type ColumnValue = Sorter<Feed>;
 
     fn value(&self) -> Self::Value {
         self.id().clone()
+    }
+    fn column_values() -> Vec<Self::ColumnValue> {
+        vec![
+            Feed::BY_TOT_UNREADS,
+            Feed::BY_TYPE,
+            Feed::BY_TOT_UNREADS,
+            Feed::BY_TITLE,
+            Feed::BY_LATEST_ITEM,
+            Feed::BY_HITS,
+        ]
     }
     fn content(&self) -> Vec<String> {
         let tot_items = self.items().map(Vec::len).unwrap_or_default();
@@ -221,6 +229,11 @@ impl Hash for Item {
 }
 impl Tabular for Item {
     type Value = ItemId;
+    type ColumnValue = Sorter<Item>;
+
+    fn column_values() -> Vec<Self::ColumnValue> {
+        vec![Item::BY_IS_READ, Item::BY_TITLE, Item::BY_POSTED]
+    }
     fn value(&self) -> Self::Value {
         self.id.clone()
     }
@@ -264,6 +277,10 @@ pub struct Tag {
 }
 impl Tabular for Tag {
     type Value = String;
+    type ColumnValue = Sorter<Tag>;
+    fn column_values() -> Vec<Self::ColumnValue> {
+        vec![Tag::BY_NAME, Tag::BY_COUNT]
+    }
     fn value(&self) -> Self::Value {
         self.name.clone()
     }
@@ -286,6 +303,10 @@ pub struct Link {
 }
 impl Tabular for Link {
     type Value = String;
+    type ColumnValue = ();
+    fn column_values() -> Vec<Self::ColumnValue> {
+        vec![]
+    }
 
     fn value(&self) -> Self::Value {
         self.href.clone()
@@ -319,6 +340,11 @@ pub struct Shortcut {
 }
 impl Tabular for Shortcut {
     type Value = String;
+    type ColumnValue = ();
+
+    fn column_values() -> Vec<Self::ColumnValue> {
+        vec![]
+    }
 
     fn value(&self) -> Self::Value {
         self.name.clone()

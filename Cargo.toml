@@ -21,7 +21,7 @@ itertools = "0.13.0"
 lazy_static = "1.4.0"
 open = "5.1.4"
 ratatui = { version = "0.29.0", features = ["crossterm"] }
-ratatui-helpers = { path = "../ratatui-helpers" }
+ratatui-helpers = { git = "https://github.com/diegostafa/ratatui-helpers.git" }
 regex = "1.10.5"
 serde = { version = "1.0.199", features = ["derive"] }
 serde_with = { version = "3.8.1", features = ["chrono"] }
