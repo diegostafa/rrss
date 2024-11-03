@@ -4,7 +4,7 @@ use std::hash::Hash;
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use ratatui::layout::{Alignment, Constraint};
-use ratatui::style::{Style, Stylize};
+use ratatui::style::Style;
 use ratatui_helpers::stateful_table::Tabular;
 use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
@@ -91,12 +91,19 @@ impl Feed {
             })
         }
     }
+    pub fn has_new_unfiltered(&self) -> bool {
+        if self.conf.filter.is_none() {
+            return false;
+        }
+        self.items()
+            .map(|i| i.iter().find(|i| !i.is_read && !i.is_filtered).is_some())
+            .unwrap_or_default()
+    }
     pub fn tot_unread(&self) -> usize {
         self.items()
             .map(|i| i.iter().filter(|i| !i.is_read).count())
             .unwrap_or_default()
     }
-
     pub fn name(&self) -> String {
         self.data
             .clone()
@@ -127,10 +134,14 @@ impl Tabular for Feed {
         ]
     }
     fn content(&self) -> Vec<String> {
-        let tot_items = self.items().map(Vec::len).unwrap_or_default();
+        let empty = vec![];
+        let items = self.items().unwrap_or(&empty);
+        let tot_items = items.len();
         let tot_unread = self.tot_unread();
-        let unread_marker = match tot_unread > 0 {
-            true => CONFIG.theme.unread_marker,
+
+        let marker = match () {
+            _ if self.has_new_unfiltered() => '*', // todo: add config option
+            _ if tot_unread > 0 => CONFIG.theme.unread_marker,
             _ => CONFIG.theme.read_marker,
         };
 
@@ -141,7 +152,7 @@ impl Tabular for Feed {
             .unwrap_or_default();
 
         vec![
-            format!("{}", unread_marker),
+            format!("{}", marker),
             format!("{}", self.feed_type()),
             format!("({}/{})", tot_unread, tot_items),
             format!("{}", self.name()),
@@ -171,11 +182,14 @@ impl Tabular for Feed {
     }
     fn style(&self) -> Style {
         let mut style = Style::default();
+        if self.has_new_unfiltered() {
+            style = style.fg(ratatui::style::Color::LightCyan); // todo: add config option
+        }
         if self.tot_unread() > 0 {
             style = style.fg(CONFIG.theme.fg_unread_color);
         }
         if self.metrics.is_recent {
-            style = style.italic();
+            style = style.fg(ratatui::style::Color::LightGreen);
         }
         style
     }
