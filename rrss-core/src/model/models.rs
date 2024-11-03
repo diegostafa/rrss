@@ -13,7 +13,7 @@ use super::adapters::{FeedAdapter, FeedTypeAdapter, MediaObjectAdapter};
 use super::sorter::Sorter;
 use crate::config::{FeedFilter, FeedSource};
 use crate::globals::CONFIG;
-use crate::model::format_date;
+use crate::model::pretty_date;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct FeedMetrics {
@@ -148,7 +148,7 @@ impl Tabular for Feed {
         let latest_item_date = self
             .metrics
             .latest_item_date
-            .map(format_date)
+            .map(pretty_date)
             .unwrap_or_default();
 
         vec![
@@ -265,7 +265,7 @@ impl Tabular for Item {
         vec![
             format!("{}", marker),
             format!("{}", self.title.clone().unwrap_or_default()),
-            format!("{}", self.posted.map(format_date).unwrap_or_default()),
+            format!("{}", self.posted.map(pretty_date).unwrap_or_default()),
         ]
     }
     fn column_names() -> Option<Vec<String>> {

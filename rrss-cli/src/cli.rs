@@ -9,6 +9,8 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     Dry,
+    // DumpConfig,
+    // DumpSources,
     Fetch,
     Clear,
     Query {

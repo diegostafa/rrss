@@ -1,9 +1,11 @@
 use ratatui::crossterm::event::{Event, KeyCode};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::text::Line;
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 use ratatui_helpers::view::View;
 use rrss_core::feed_manager::FeedManager;
+use rrss_core::globals::CONFIG;
 use rrss_core::model::filter::Filter;
 use rrss_core::model::models::Item;
 
@@ -14,7 +16,7 @@ use crate::widgets::scrollable_paragraph::ScrollableParagraph;
 pub struct DetailedItemView<'a> {
     items: Vec<Item>,
     item_idx: usize,
-    header: Paragraph<'a>,
+    title: Paragraph<'a>,
     content: ScrollableParagraph<'a>,
     layout: Layout,
 }
@@ -23,7 +25,7 @@ impl DetailedItemView<'_> {
         let mut view = Self {
             items,
             item_idx: curr_idx,
-            header: StyledWidget::header_paragraph("".to_string()),
+            title: StyledWidget::header_paragraph("".to_string()),
             content: ScrollableParagraph::new("".to_string()),
             layout: Layout::default()
                 .direction(Direction::Vertical)
@@ -37,19 +39,35 @@ impl DetailedItemView<'_> {
     }
     fn update_view(&mut self) {
         let item = self.item().clone();
-        self.header = StyledWidget::header_paragraph(format!(
+        self.title = StyledWidget::header_paragraph(format!(
             "({}/{}) - {}",
             self.item_idx + 1,
             self.items.len(),
             item.title.clone().unwrap_or_default()
         ));
 
-        self.content = ScrollableParagraph::new(
+        let mut lines = vec![];
+        if let Some(title) = item.title {
+            lines.push(Line::from(format!("Title: {}", title)));
+        }
+        if let Some(date) = item.posted {
+            lines.push(Line::from(format!(
+                "Posted: {}",
+                date.format(CONFIG.theme.date_format.as_str())
+            )));
+        }
+        if !lines.is_empty() {
+            lines.push(Line::from(""));
+        }
+
+        lines.push(Line::from(
             item.content
                 .or(item.summary)
                 .or(item.media.first().and_then(|c| c.description.clone()))
                 .unwrap_or_default(),
-        );
+        ));
+
+        self.content = ScrollableParagraph::new(lines);
         self.set_title();
     }
 }
@@ -103,7 +121,7 @@ impl View for DetailedItemView<'_> {
     }
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {
         let layout = self.layout.split(area);
-        f.render_widget(&self.header, layout[0]);
+        f.render_widget(&self.title, layout[0]);
         self.content.draw(f, layout[1]);
     }
 }

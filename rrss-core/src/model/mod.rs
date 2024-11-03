@@ -8,7 +8,7 @@ pub mod filter;
 pub mod models;
 pub mod sorter;
 
-pub fn format_date(date: DateTime<Utc>) -> String {
+pub fn pretty_date(date: DateTime<Utc>) -> String {
     let delta_days = (Utc::now() - date).num_days();
     match delta_days {
         0 => HumanTime::from(date).to_text_en(Accuracy::Rough, Tense::Past),

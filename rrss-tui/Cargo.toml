@@ -6,7 +6,10 @@ edition = "2021"
 [dependencies]
 crossterm = "0.28.1"
 open = "5.1.4"
-ratatui = { version = "0.29.0", features = ["crossterm"] }
+ratatui = { version = "0.29.0", features = [
+    "crossterm",
+    "unstable-rendered-line-info",
+] }
 ratatui-helpers = { git = "https://github.com/diegostafa/ratatui-helpers.git" }
 unicode-width = "0.2.0"
 rrss-core = { path = "../rrss-core" }
