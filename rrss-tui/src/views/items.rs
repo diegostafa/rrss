@@ -8,13 +8,13 @@ use ratatui::Frame;
 use ratatui_helpers::keymap::{KeyMap, ShortCut};
 use ratatui_helpers::stateful_table::{IndexedRow, StatefulTable};
 use ratatui_helpers::view::View;
+use rrss_core::feed_manager::FeedManager;
+use rrss_core::model::filter::Filter;
+use rrss_core::model::models::Item;
+use rrss_core::model::sorter::Sorter;
 
-use crate::feed_manager::FeedManager;
-use crate::model::filter::Filter;
-use crate::model::models::Item;
-use crate::model::sorter::Sorter;
-use crate::tui::app::{AppRequest, ViewKind};
-use crate::tui::theme::StyledWidget;
+use crate::app::{AppRequest, ViewKind};
+use crate::theme::StyledWidget;
 
 pub struct ItemsView<'row> {
     table: StatefulTable<'row, IndexedRow<Item>>,

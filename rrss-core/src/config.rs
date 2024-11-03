@@ -1,6 +1,8 @@
 use std::hash::Hash;
+use std::str::FromStr;
 
 use itertools::Itertools;
+use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 
 use crate::cache::SerializableFeed;
@@ -13,41 +15,43 @@ pub struct PartialTheme {
     fg_normal_color: Option<String>,
     fg_unread_color: Option<String>,
     fg_filtered_color: Option<String>,
+    fg_item_header: Option<String>,
 
     bg_header_color: Option<String>,
     bg_selected_color: Option<String>,
     bg_normal_color: Option<String>,
     bg_unread_color: Option<String>,
     bg_filterd_color: Option<String>,
+    bg_item_header: Option<String>,
 
     column_spacing: Option<u16>,
     border_color: Option<String>,
     borders: Option<bool>,
     rounded_borders: Option<bool>,
-    scrollbars: Option<bool>,
     date_format: Option<String>,
     unread_marker: Option<char>,
     read_marker: Option<char>,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct Theme {
-    pub fg_header_color: String,
-    pub fg_selected_color: String,
-    pub fg_normal_color: String,
-    pub fg_unread_color: String,
-    pub fg_filtered_color: String,
+    pub fg_header_color: Color,
+    pub fg_selected_color: Color,
+    pub fg_normal_color: Color,
+    pub fg_unread_color: Color,
+    pub fg_filtered_color: Color,
+    pub fg_item_header: Color,
 
-    pub bg_header_color: String,
-    pub bg_selected_color: String,
-    pub bg_normal_color: String,
-    pub bg_unread_color: String,
-    pub bg_filterd_color: String,
+    pub bg_header_color: Color,
+    pub bg_selected_color: Color,
+    pub bg_normal_color: Color,
+    pub bg_unread_color: Color,
+    pub bg_filterd_color: Color,
+    pub bg_item_header: Color,
 
     pub column_spacing: u16,
-    pub border_color: String,
+    pub border_color: Color,
     pub borders: bool,
     pub rounded_borders: bool,
-    pub scrollbars: bool,
     pub date_format: String,
     pub unread_marker: char,
     pub read_marker: char,
@@ -55,25 +59,36 @@ pub struct Theme {
 impl From<PartialTheme> for Theme {
     fn from(val: PartialTheme) -> Self {
         Self {
-            fg_header_color: val.fg_header_color.unwrap_or("blue".to_string()),
-            fg_selected_color: val.fg_selected_color.unwrap_or("white".to_string()),
-            fg_normal_color: val.fg_normal_color.unwrap_or("white".to_string()),
-            fg_unread_color: val.fg_unread_color.unwrap_or("yellow".to_string()),
-            fg_filtered_color: val.fg_filtered_color.unwrap_or("darkgray".to_string()),
+            fg_header_color: Color::from_str(&val.fg_header_color.unwrap_or("blue".to_string()))
+                .unwrap(),
+            fg_selected_color: Color::from_str(&val.fg_selected_color.unwrap_or("white".into()))
+                .unwrap(),
+            fg_normal_color: Color::from_str(&val.fg_normal_color.unwrap_or("white".into()))
+                .unwrap(),
+            fg_unread_color: Color::from_str(&val.fg_unread_color.unwrap_or("yellow".into()))
+                .unwrap(),
+            fg_filtered_color: Color::from_str(&val.fg_filtered_color.unwrap_or("darkgray".into()))
+                .unwrap(),
+            fg_item_header: Color::from_str(&val.fg_item_header.unwrap_or("white".into())).unwrap(),
 
-            bg_header_color: val.bg_header_color.unwrap_or("black".to_string()),
-            bg_selected_color: val.bg_selected_color.unwrap_or("darkgray".to_string()),
-            bg_normal_color: val.bg_normal_color.unwrap_or("black".to_string()),
-            bg_unread_color: val.bg_unread_color.unwrap_or("black".to_string()),
-            bg_filterd_color: val.bg_filterd_color.unwrap_or("black".to_string()),
+            bg_header_color: Color::from_str(&val.bg_header_color.unwrap_or("black".into()))
+                .unwrap(),
+            bg_selected_color: Color::from_str(&val.bg_selected_color.unwrap_or("darkgray".into()))
+                .unwrap(),
+            bg_normal_color: Color::from_str(&val.bg_normal_color.unwrap_or("black".into()))
+                .unwrap(),
+            bg_unread_color: Color::from_str(&val.bg_unread_color.unwrap_or("black".into()))
+                .unwrap(),
+            bg_filterd_color: Color::from_str(&val.bg_filterd_color.unwrap_or("black".into()))
+                .unwrap(),
+            bg_item_header: Color::from_str(&val.bg_item_header.unwrap_or("blue".into())).unwrap(),
 
-            border_color: val.border_color.unwrap_or("yellow".to_string()),
+            border_color: Color::from_str(&val.border_color.unwrap_or("yellow".into())).unwrap(),
             borders: val.borders.unwrap_or(true),
             rounded_borders: val.rounded_borders.unwrap_or(false),
             date_format: val.date_format.unwrap_or_else(|| "%Y-%m-%d".to_string()),
             unread_marker: val.unread_marker.unwrap_or('*'),
             read_marker: val.read_marker.unwrap_or(' '),
-            scrollbars: val.scrollbars.unwrap_or(false),
             column_spacing: val.column_spacing.unwrap_or(1),
         }
     }
@@ -85,7 +100,6 @@ pub struct PartialConfig {
     max_concurrency: Option<usize>,
     theme: Option<PartialTheme>,
 }
-#[derive(Deserialize)]
 pub struct Config {
     pub relative_time_threshold: u32,
     pub max_concurrency: usize,
@@ -107,7 +121,7 @@ pub struct PartialFeedFilter {
     invert: Option<bool>,
     case_insensitive: Option<bool>,
 }
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct FeedFilter {
     pub pattern: String,
     pub invert: bool,
@@ -131,7 +145,7 @@ struct PartialFeedSource {
     filter: Option<PartialFeedFilter>,
     max_items: Option<u32>,
 }
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct FeedSource {
     pub url: FeedId,
     pub tags: Vec<String>,
@@ -166,7 +180,6 @@ impl Hash for FeedSource {
 pub struct PartialSources {
     sources: Option<Vec<PartialFeedSource>>,
 }
-#[derive(Deserialize)]
 pub struct Sources(pub Vec<FeedSource>);
 impl Sources {
     pub fn bind_to_cached(self, cached_feeds: Vec<SerializableFeed>) -> Vec<Feed> {

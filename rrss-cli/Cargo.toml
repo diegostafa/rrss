@@ -1,0 +1,13 @@
+[package]
+name = "rrss-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "rrss"
+path = "src/main.rs"
+
+[dependencies]
+async-std = "1.13.0"
+clap = { version = "4.5.4", features = ["derive"] }
+rrss-core = { path = "../rrss-core" }

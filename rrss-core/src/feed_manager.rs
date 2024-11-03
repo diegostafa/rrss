@@ -6,10 +6,11 @@ use async_std::task::JoinHandle;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use itertools::{Either, Itertools};
+use ratatui_helpers::config::parse_toml;
 
 use crate::cache::{CachedFeeds, SerializableFeed};
-use crate::config::Sources;
-use crate::globals::CONFIG;
+use crate::config::{PartialSources, Sources};
+use crate::globals::{CONFIG, PROJECT_NAME, SOURCES_FILE};
 use crate::model::adapters::FeedAdapter;
 use crate::model::filter::{Filter, FilterTest};
 use crate::model::models::{Feed, FeedId, FeedMetrics, Item, ItemId, Link, Tag};
@@ -32,7 +33,9 @@ pub struct FeedManager {
     update_feed_ch: Option<Receiver<FetchResult>>,
 }
 impl FeedManager {
-    pub fn new(sources: Sources) -> Self {
+    pub fn new() -> Self {
+        CachedFeeds::init();
+        let sources: Sources = parse_toml::<PartialSources, _>(PROJECT_NAME, SOURCES_FILE);
         let cached_feeds = CachedFeeds::load().expect("[error] failed to load feeds");
         let fm = Self {
             feeds: sources.bind_to_cached(cached_feeds),
@@ -72,6 +75,7 @@ impl FeedManager {
         let urls = self
             .get_feeds(filter, &Sorter::NONE)
             .iter()
+            .filter(|f| !f.conf.manual_update)
             .map(|f| f.url().to_string())
             .collect();
 

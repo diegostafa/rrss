@@ -2,11 +2,11 @@ use ratatui::layout::Rect;
 use ratatui::widgets::{Paragraph, Wrap};
 use ratatui::Frame;
 use ratatui_helpers::view::View;
+use rrss_core::feed_manager::FeedManager;
 
-use crate::feed_manager::FeedManager;
-use crate::tui::app::{AppRequest, ViewKind};
-use crate::tui::centered_rect;
-use crate::tui::theme::StyledWidget;
+use crate::app::{AppRequest, ViewKind};
+use crate::centered_rect;
+use crate::theme::StyledWidget;
 
 pub struct PopupView<'a> {
     p: Paragraph<'a>,

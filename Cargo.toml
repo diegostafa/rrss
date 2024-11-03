@@ -1,30 +1,3 @@
-[package]
-name = "rrss"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-async-semaphore = "1.2.0"
-async-std = "1.13.0"
-bincode = "1.3.3"
-chrono = "0.4.38"
-chrono-humanize = "0.2.3"
-clap = { version = "4.5.4", features = ["derive"] }
-crossterm = "0.28.1"
-directories = "5.0.1"
-feed-rs = "2.0.0"
-futures = "0.3.30"
-html2text = "0.13.2"
-itertools = "0.13.0"
-lazy_static = "1.4.0"
-open = "5.1.4"
-ratatui = { version = "0.29.0", features = ["crossterm"] }
-ratatui-helpers = { git = "https://github.com/diegostafa/ratatui-helpers.git" }
-regex = "1.10.5"
-serde = { version = "1.0.199", features = ["derive"] }
-serde_with = { version = "3.8.1", features = ["chrono"] }
-toml = "0.8.12"
-unicode-width = "0.2.0"
-ureq = "2.10.1"
+[workspace]
+resolver = "2"
+members = ["rrss-cli", "rrss-core", "rrss-tui"]

@@ -1,26 +1,33 @@
-use std::io;
+#![feature(let_chains)]
+#![warn(unused_results)]
 
-use ratatui::crossterm::event::{DisableMouseCapture, EnableMouseCapture};
-use ratatui::crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
+use app::App;
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::layout::Rect;
 use ratatui::prelude::CrosstermBackend;
-use ratatui::{crossterm, Terminal};
+use ratatui::Terminal;
+use rrss_core::feed_manager::FeedManager;
 
 pub mod app;
-mod keymaps;
-mod theme;
-mod views;
-mod widgets;
+pub mod keymaps;
+pub mod theme;
+pub mod views;
+pub mod widgets;
 
-pub fn try_init_term() -> Result<Terminal<CrosstermBackend<io::Stdout>>, Box<io::Error>> {
-    let mut stdout = io::stdout();
+fn main() {
+    App::new(FeedManager::new()).init().run().unwrap()
+}
+
+pub fn try_init_term() -> Result<Terminal<CrosstermBackend<std::io::Stdout>>, Box<std::io::Error>> {
+    let mut stdout = std::io::stdout();
     terminal::enable_raw_mode()?;
     crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     Ok(Terminal::new(CrosstermBackend::new(stdout))?)
 }
 pub fn try_release_term(
-    mut term: Terminal<CrosstermBackend<io::Stdout>>,
-) -> Result<(), Box<io::Error>> {
+    mut term: Terminal<CrosstermBackend<std::io::Stdout>>,
+) -> Result<(), Box<std::io::Error>> {
     terminal::disable_raw_mode()?;
     crossterm::execute!(
         term.backend_mut(),

@@ -1,11 +1,10 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
-use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
-use ratatui::layout::Constraint;
-use ratatui::style::{Color, Style, Stylize};
+use ratatui::layout::{Alignment, Constraint};
+use ratatui::style::{Style, Stylize};
 use ratatui_helpers::stateful_table::Tabular;
 use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
@@ -144,7 +143,7 @@ impl Tabular for Feed {
         vec![
             format!("{}", unread_marker),
             format!("{}", self.feed_type()),
-            format!("{}/{}", tot_unread, tot_items),
+            format!("({}/{})", tot_unread, tot_items),
             format!("{}", self.name()),
             format!("{}", latest_item_date),
             format!("{}", self.metrics.hits),
@@ -173,12 +172,22 @@ impl Tabular for Feed {
     fn style(&self) -> Style {
         let mut style = Style::default();
         if self.tot_unread() > 0 {
-            style = style.fg(Color::from_str(&CONFIG.theme.fg_unread_color).unwrap());
+            style = style.fg(CONFIG.theme.fg_unread_color);
         }
         if self.metrics.is_recent {
             style = style.italic();
         }
         style
+    }
+    fn column_alignments() -> Option<Vec<Alignment>> {
+        Some(vec![
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Right,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+        ])
     }
 }
 
@@ -202,9 +211,6 @@ pub struct Item {
     pub links: Vec<Link>,
 }
 impl Item {
-    pub fn url(&self) -> Option<String> {
-        self.links.first().map(|l| l.href.clone())
-    }
     pub fn title_matches(&self, filter: &FeedFilter) -> bool {
         if let Some(title) = &self.title {
             return RegexBuilder::new(&filter.pattern)
@@ -258,13 +264,13 @@ impl Tabular for Item {
         let mut style = Style::default();
         if !self.is_read {
             style = style
-                .fg(Color::from_str(&CONFIG.theme.fg_unread_color).unwrap())
-                .bg(Color::from_str(&CONFIG.theme.bg_unread_color).unwrap());
+                .fg(CONFIG.theme.fg_unread_color)
+                .bg(CONFIG.theme.bg_unread_color);
         }
         if self.is_filtered {
             style = style
-                .fg(Color::from_str(&CONFIG.theme.fg_filtered_color).unwrap())
-                .bg(Color::from_str(&CONFIG.theme.bg_filterd_color).unwrap());
+                .fg(CONFIG.theme.fg_filtered_color)
+                .bg(CONFIG.theme.bg_filterd_color);
         }
         style
     }
@@ -345,7 +351,6 @@ impl Tabular for Shortcut {
     fn column_values() -> Vec<Self::ColumnValue> {
         vec![]
     }
-
     fn value(&self) -> Self::Value {
         self.name.clone()
     }

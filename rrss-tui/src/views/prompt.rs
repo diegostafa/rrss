@@ -3,10 +3,10 @@ use ratatui::layout::Rect;
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 use ratatui_helpers::view::View;
+use rrss_core::feed_manager::FeedManager;
 
-use crate::feed_manager::FeedManager;
-use crate::tui::app::{AppRequest, ViewKind};
-use crate::tui::widgets::tui_input::{to_input_request, Input, StateChanged};
+use crate::app::{AppRequest, ViewKind};
+use crate::widgets::tui_input::{to_input_request, Input, StateChanged};
 
 pub struct PromptView {
     prefix: String,

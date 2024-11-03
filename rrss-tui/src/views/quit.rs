@@ -1,7 +1,7 @@
 use ratatui_helpers::view::View;
+use rrss_core::feed_manager::FeedManager;
 
-use crate::feed_manager::FeedManager;
-use crate::tui::app::{AppRequest, ViewKind};
+use crate::app::{AppRequest, ViewKind};
 
 pub struct QuitView;
 impl View for QuitView {

@@ -1,13 +1,15 @@
-use std::str::FromStr;
-
-use ratatui::style::{Color, Style};
-use ratatui::widgets::{Block, BorderType, Borders, TableState};
+use ratatui::style::{Style, Stylize};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph, TableState};
 use ratatui_helpers::stateful_table::{IndexedRow, Padding, StatefulTable, TableStyle, Tabular};
-
-use crate::globals::CONFIG;
+use rrss_core::globals::CONFIG;
 
 pub struct StyledWidget;
 impl StyledWidget {
+    pub fn header_paragraph<'a>(s: String) -> Paragraph<'a> {
+        Paragraph::new(s)
+            .fg(CONFIG.theme.fg_item_header)
+            .bg(CONFIG.theme.bg_item_header)
+    }
     pub fn table<'a, T: Tabular>(
         data: Vec<T>,
         state: TableState,
@@ -25,9 +27,9 @@ impl StyledWidget {
     pub fn block<'a>() -> Block<'a> {
         let mut block = Block::new();
         if CONFIG.theme.borders {
-            block = block.borders(Borders::ALL).border_style(
-                Style::default().fg(Color::from_str(&CONFIG.theme.border_color).unwrap()),
-            )
+            block = block
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(CONFIG.theme.border_color))
         }
         if CONFIG.theme.rounded_borders {
             block = block.border_type(BorderType::Rounded)
@@ -45,15 +47,15 @@ impl StyledWidget {
         TableStyle {
             table: Style::default(),
             header: Style::default()
-                .fg(Color::from_str(&CONFIG.theme.fg_header_color).unwrap())
-                .bg(Color::from_str(&CONFIG.theme.bg_header_color).unwrap()),
+                .fg(CONFIG.theme.fg_header_color)
+                .bg(CONFIG.theme.bg_header_color),
             block: (Self::block(), Self::table_padding()),
             highlight: Style::default()
-                .fg(Color::from_str(&CONFIG.theme.fg_selected_color).unwrap())
-                .bg(Color::from_str(&CONFIG.theme.bg_selected_color).unwrap()),
+                .fg(CONFIG.theme.fg_selected_color)
+                .bg(CONFIG.theme.bg_selected_color),
             normal: Style::default()
-                .fg(Color::from_str(&CONFIG.theme.fg_normal_color).unwrap())
-                .bg(Color::from_str(&CONFIG.theme.bg_normal_color).unwrap()),
+                .fg(CONFIG.theme.fg_normal_color)
+                .bg(CONFIG.theme.bg_normal_color),
             column_spacing: CONFIG.theme.column_spacing,
             col_highlight: Style::default(),
         }

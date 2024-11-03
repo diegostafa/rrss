@@ -7,6 +7,10 @@ use ratatui::widgets::TableState;
 use ratatui_helpers::dock::{Dock, DockPosition};
 use ratatui_helpers::keymap::KeyMap;
 use ratatui_helpers::view_controller::ViewController;
+use rrss_core::feed_manager::{FeedManager, TaskStatus};
+use rrss_core::model::filter::Filter;
+use rrss_core::model::models::{Feed, FeedId, Item, ItemId, Tag};
+use rrss_core::model::sorter::Sorter;
 
 use super::keymaps::{AppCommand, AppKeyMap};
 use super::views::detailed_item::DetailedItemView;
@@ -18,11 +22,7 @@ use super::views::popup::PopupView;
 use super::views::prompt::PromptView;
 use super::views::quit::QuitView;
 use super::views::tags::TagView;
-use super::{try_init_term, try_release_term};
-use crate::feed_manager::{FeedManager, TaskStatus};
-use crate::model::filter::Filter;
-use crate::model::models::{Feed, FeedId, Item, ItemId, Tag};
-use crate::model::sorter::Sorter;
+use crate::{try_init_term, try_release_term};
 
 #[derive(PartialEq)]
 pub enum ViewKind {

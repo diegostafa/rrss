@@ -4,14 +4,14 @@ use ratatui::widgets::TableState;
 use ratatui::Frame;
 use ratatui_helpers::stateful_table::{IndexedRow, StatefulTable};
 use ratatui_helpers::view::View;
+use rrss_core::feed_manager::FeedManager;
+use rrss_core::model::filter::Filter;
+use rrss_core::model::models::Tag;
+use rrss_core::model::sorter::Sorter;
 
-use crate::feed_manager::FeedManager;
-use crate::model::filter::Filter;
-use crate::model::models::Tag;
-use crate::model::sorter::Sorter;
-use crate::tui::app::{AppRequest, ViewKind};
-use crate::tui::centered_rect;
-use crate::tui::theme::StyledWidget;
+use crate::app::{AppRequest, ViewKind};
+use crate::centered_rect;
+use crate::theme::StyledWidget;
 
 pub struct TagView<'row> {
     table: StatefulTable<'row, IndexedRow<Tag>>,

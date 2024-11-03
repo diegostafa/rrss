@@ -1,20 +1,20 @@
 use ratatui::crossterm::event::{Event, KeyCode};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::widgets::Borders;
+use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 use ratatui_helpers::view::View;
+use rrss_core::feed_manager::FeedManager;
+use rrss_core::model::filter::Filter;
+use rrss_core::model::models::Item;
 
-use crate::feed_manager::FeedManager;
-use crate::model::filter::Filter;
-use crate::model::models::Item;
-use crate::tui::app::{AppRequest, ViewKind};
-use crate::tui::theme::StyledWidget;
-use crate::tui::widgets::scrollable_paragraph::ScrollableParagraph;
+use crate::app::{AppRequest, ViewKind};
+use crate::theme::StyledWidget;
+use crate::widgets::scrollable_paragraph::ScrollableParagraph;
 
 pub struct DetailedItemView<'a> {
     items: Vec<Item>,
     item_idx: usize,
-    header: ScrollableParagraph<'a>,
+    header: Paragraph<'a>,
     content: ScrollableParagraph<'a>,
     layout: Layout,
 }
@@ -23,15 +23,11 @@ impl DetailedItemView<'_> {
         let mut view = Self {
             items,
             item_idx: curr_idx,
-            header: ScrollableParagraph::new("".to_string()),
+            header: StyledWidget::header_paragraph("".to_string()),
             content: ScrollableParagraph::new("".to_string()),
             layout: Layout::default()
                 .direction(Direction::Vertical)
-                .constraints(vec![
-                    Constraint::Length(1),
-                    Constraint::Length(1),
-                    Constraint::Fill(1),
-                ]),
+                .constraints(vec![Constraint::Length(1), Constraint::Fill(1)]),
         };
         view.update_view();
         view
@@ -41,7 +37,13 @@ impl DetailedItemView<'_> {
     }
     fn update_view(&mut self) {
         let item = self.item().clone();
-        self.header = ScrollableParagraph::new(item.title.clone().unwrap_or_default());
+        self.header = StyledWidget::header_paragraph(format!(
+            "({}/{}) - {}",
+            self.item_idx + 1,
+            self.items.len(),
+            item.title.clone().unwrap_or_default()
+        ));
+
         self.content = ScrollableParagraph::new(
             item.content
                 .or(item.summary)
@@ -101,8 +103,7 @@ impl View for DetailedItemView<'_> {
     }
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) {
         let layout = self.layout.split(area);
-        self.header.draw(f, layout[0]);
-        f.render_widget(StyledWidget::block().borders(Borders::BOTTOM), layout[1]);
-        self.content.draw(f, layout[2]);
+        f.render_widget(&self.header, layout[0]);
+        self.content.draw(f, layout[1]);
     }
 }

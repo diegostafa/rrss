@@ -11,8 +11,19 @@ pub enum Commands {
     Dry,
     Fetch,
     Clear,
-    Tui,
     Query {
+        #[command(subcommand)]
+        query: QueryCommandTarget,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum QueryCommandTarget {
+    Feed {
+        #[command(subcommand)]
+        query: QueryCommand,
+    },
+    Item {
         #[command(subcommand)]
         query: QueryCommand,
     },
@@ -20,6 +31,11 @@ pub enum Commands {
 
 #[derive(Subcommand, Debug)]
 pub enum QueryCommand {
+    Read,
+    Unread,
     ReadCount,
     UnreadCount,
 }
+
+// rrss query feed read-count
+// rrss query feed tag "rust"

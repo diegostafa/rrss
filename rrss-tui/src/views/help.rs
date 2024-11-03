@@ -5,13 +5,13 @@ use ratatui::Frame;
 use ratatui_helpers::keymap::{KeyMap, ShortCut};
 use ratatui_helpers::stateful_table::StatefulTable;
 use ratatui_helpers::view::View;
+use rrss_core::feed_manager::FeedManager;
 
 use super::feeds::{FeedsCommand, FeedsKeyMap};
 use super::items::{ItemsCommand, ItemsKeyMap};
-use crate::feed_manager::FeedManager;
-use crate::tui::app::{AppRequest, ViewKind};
-use crate::tui::keymaps::{AppCommand, AppKeyMap};
-use crate::tui::theme::StyledWidget;
+use crate::app::{AppRequest, ViewKind};
+use crate::keymaps::{AppCommand, AppKeyMap};
+use crate::theme::StyledWidget;
 
 pub struct HelpView<'a> {
     app_table: StatefulTable<'a, ShortCut<AppCommand>>,
