@@ -1,7 +1,7 @@
 use super::models::{Feed, FeedId, Item, ItemId, Tag};
 
 pub trait FilterTest<T> {
-    fn test(&self, e: &&T) -> bool;
+    fn test(&self, e: &T) -> bool;
 }
 
 #[derive(Default, Debug, Clone, PartialEq)]
@@ -69,9 +69,9 @@ impl Filter {
     }
 }
 impl FilterTest<Feed> for Filter {
-    fn test(&self, e: &&Feed) -> bool {
+    fn test(&self, e: &Feed) -> bool {
         if let Some(tag) = &self.tag_id {
-            return e.tags().contains(tag);
+            return e.conf.tags.contains(tag);
         }
         if let Some(id) = &self.feed_id {
             return e.id() == id;
@@ -86,33 +86,33 @@ impl FilterTest<Feed> for Filter {
     }
 }
 impl FilterTest<Item> for Filter {
-    fn test(&self, e: &&Item) -> bool {
+    fn test(&self, e: &Item) -> bool {
         if let Some(id) = &self.item_id {
-            return e.id == *id;
+            return e.data.id == *id;
         }
         if let Some(true) = self.unread_item {
-            return !e.is_read;
+            return !e.state.is_read;
         }
         if let Some(false) = self.unread_item {
-            return e.is_read;
+            return e.state.is_read;
         }
         if let Some(p) = &self.item_contains {
-            if let Some(title) = &e.title {
+            if let Some(title) = &e.data.title {
                 return title.to_lowercase().contains(&p.to_lowercase());
             }
-            if let Some(content) = &e.content {
+            if let Some(content) = &e.data.content {
                 return content.to_lowercase().contains(&p.to_lowercase());
             }
             return false;
         }
         if let Some(_) = self.unfiltered {
-            return !e.is_filtered;
+            return !e.state.is_filtered;
         }
         true
     }
 }
 impl FilterTest<Tag> for Filter {
-    fn test(&self, e: &&Tag) -> bool {
+    fn test(&self, e: &Tag) -> bool {
         if let Some(id) = &self.tag_id {
             return e.name == *id;
         }

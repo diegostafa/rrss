@@ -43,14 +43,14 @@ impl DetailedItemView<'_> {
             "({}/{}) - {}",
             self.item_idx + 1,
             self.items.len(),
-            item.title.clone().unwrap_or_default()
+            item.data.title.clone().unwrap_or_default()
         ));
 
         let mut lines = vec![];
-        if let Some(title) = item.title {
+        if let Some(title) = item.data.title {
             lines.push(Line::from(format!("Title: {}", title)));
         }
-        if let Some(date) = item.posted {
+        if let Some(date) = item.data.posted {
             lines.push(Line::from(format!(
                 "Posted: {}",
                 date.format(CONFIG.theme.date_format.as_str())
@@ -61,9 +61,10 @@ impl DetailedItemView<'_> {
         }
 
         lines.push(Line::from(
-            item.content
-                .or(item.summary)
-                .or(item.media.first().and_then(|c| c.description.clone()))
+            item.data
+                .content
+                .or(item.data.summary)
+                .or(item.data.media.first().and_then(|c| c.description.clone()))
                 .unwrap_or_default(),
         ));
 
@@ -79,7 +80,7 @@ impl View for DetailedItemView<'_> {
         ViewKind::DetailedItem
     }
     fn title(&self) -> String {
-        format!("{}", self.item().title.clone().unwrap_or_default())
+        format!("{}", self.item().data.title.clone().unwrap_or_default())
     }
     fn refresh(&mut self, _fm: &FeedManager) {
         self.update_view();
@@ -89,14 +90,16 @@ impl View for DetailedItemView<'_> {
         match ev {
             Event::Key(ev) => match ev.code {
                 KeyCode::Char('o') => {
-                    if let Some(link) = self.item().links.first()
+                    if let Some(link) = self.item().data.links.first()
                         && let Err(e) = open::that_detached(&link.href)
                     {
                         return AppRequest::OpenPopupView(e.to_string());
                     }
                 }
                 KeyCode::Char('l') => {
-                    return AppRequest::OpenLinksView(Filter::new().item_id(self.item().id.clone()))
+                    return AppRequest::OpenLinksView(
+                        Filter::new().item_id(self.item().data.id.clone()),
+                    )
                 }
                 KeyCode::Char('K') | KeyCode::Left => {
                     self.item_idx = self.item_idx.saturating_sub(1).max(0);
@@ -109,8 +112,8 @@ impl View for DetailedItemView<'_> {
                 KeyCode::Char('i') => {
                     return AppRequest::OpenPopupView(format!(
                         "TITLE: {}\nDATE: {}",
-                        self.item().title.clone().unwrap_or_default(),
-                        self.item().posted.unwrap_or_default(),
+                        self.item().data.title.clone().unwrap_or_default(),
+                        self.item().data.posted.unwrap_or_default(),
                     ))
                 }
                 _ => {}

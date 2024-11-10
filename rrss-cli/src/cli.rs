@@ -15,12 +15,12 @@ pub enum Commands {
     Clear,
     Query {
         #[command(subcommand)]
-        query: QueryCommandTarget,
+        query: QueryTarget,
     },
 }
 
 #[derive(Subcommand, Debug)]
-pub enum QueryCommandTarget {
+pub enum QueryTarget {
     Feed {
         #[command(subcommand)]
         query: QueryCommand,
@@ -33,11 +33,11 @@ pub enum QueryCommandTarget {
 
 #[derive(Subcommand, Debug)]
 pub enum QueryCommand {
+    All,
     Read,
     Unread,
     ReadCount,
     UnreadCount,
+    Tag { tag: String },
+    Contains { pattern: String },
 }
-
-// rrss query feed read-count
-// rrss query feed tag "rust"

@@ -8,16 +8,15 @@ use futures::StreamExt;
 use itertools::{Either, Itertools};
 use ratatui_helpers::config::parse_toml;
 
-use crate::cache::{CachedFeeds, SerializableFeed};
+use crate::cache::CachedFeeds;
 use crate::config::{PartialSources, Sources};
 use crate::globals::{CONFIG, PROJECT_NAME, SOURCES_FILE};
-use crate::model::adapters::FeedAdapter;
 use crate::model::filter::{Filter, FilterTest};
-use crate::model::models::{Feed, FeedId, FeedMetrics, Item, ItemId, Link, Tag};
+use crate::model::models::{Feed, FeedData, FeedId, Item, ItemId, Link, Tag};
 use crate::model::sorter::Sorter;
 
 pub type RequestError = Box<dyn std::error::Error + Send + Sync>;
-pub type FetchResult = Result<SerializableFeed, RequestError>;
+pub type FetchResult = Result<(FeedId, FeedData), RequestError>;
 
 pub enum TaskStatus<T> {
     None,
@@ -35,10 +34,10 @@ pub struct FeedManager {
 impl FeedManager {
     pub fn new() -> Self {
         CachedFeeds::init();
-        let sources: Sources = parse_toml::<PartialSources, _>(PROJECT_NAME, SOURCES_FILE);
-        let cached_feeds = CachedFeeds::load().expect("[error] failed to load feeds");
+        let feeds = CachedFeeds::load().expect("[error] failed to load feeds");
+        let sources = parse_toml::<PartialSources, Sources>(PROJECT_NAME, SOURCES_FILE);
         let fm = Self {
-            feeds: sources.bind_to_cached(cached_feeds),
+            feeds: sources.to_feeds(feeds),
             save_mutex: Arc::new(Mutex::new(())),
             update_feeds_ch: None,
             update_feed_ch: None,
@@ -46,6 +45,7 @@ impl FeedManager {
         let _ = fm.save();
         fm
     }
+
     pub fn clear(&mut self) {
         self.feeds.iter_mut().for_each(Feed::clear_data);
         let _ = self.save();
@@ -56,7 +56,7 @@ impl FeedManager {
         finally: impl FnOnce() + Send + 'static,
     ) -> Option<JoinHandle<()>> {
         if let Some(feed) = self.get_feed(id) {
-            let url = feed.url().to_string();
+            let url = feed.url();
             let (sx, rx) = async_std::channel::bounded(1);
             self.update_feed_ch = Some(rx);
             return Some(async_std::task::spawn(async move {
@@ -76,7 +76,7 @@ impl FeedManager {
             .get_feeds(filter, &Sorter::NONE)
             .iter()
             .filter(|f| !f.conf.manual_update)
-            .map(|f| f.url().to_string())
+            .map(|f| f.url())
             .collect();
 
         let (sx, rx) = async_std::channel::bounded(1);
@@ -122,10 +122,10 @@ impl FeedManager {
                     self.update_feed_ch = None;
                     TaskStatus::Error(e.to_string())
                 }
-                Ok(Ok(feed)) => {
+                Ok(Ok((id, data))) => {
                     self.update_feed_ch = None;
-                    if let Some(old_feed) = self.get_feed_mut(feed.id) {
-                        old_feed.merge_feed(feed.data);
+                    if let Some(old_feed) = self.get_feed_mut(id) {
+                        old_feed.merge_feed(data);
                         let _ = self.save();
                     }
                     TaskStatus::Done(())
@@ -133,23 +133,23 @@ impl FeedManager {
             },
         }
     }
-    pub fn merge_new_feeds(&mut self, new_feeds: Vec<SerializableFeed>) {
+    pub fn merge_new_feeds(&mut self, new_feeds: Vec<(FeedId, FeedData)>) {
         for new in new_feeds {
-            if let Some(feed) = self.get_feed_mut(new.id) {
-                feed.merge_feed(new.data)
+            if let Some(feed) = self.get_feed_mut(new.0) {
+                feed.merge_feed(new.1)
             }
         }
     }
     pub fn mark_item_as_read(&mut self, id: ItemId) {
         if let Some(i) = self.get_item_mut(id) {
-            i.is_read = true;
+            i.state.is_read = true;
             let _ = self.save();
         }
     }
     pub fn mark_feed_as_read(&mut self, id: FeedId) {
         self.items_mut(&Filter::new().feed_id(id))
             .iter_mut()
-            .for_each(|i| i.is_read = true);
+            .for_each(|i| i.state.is_read = true);
         let _ = self.save();
     }
     pub fn increment_feed_hits(&mut self, id: &FeedId) {
@@ -161,14 +161,14 @@ impl FeedManager {
     pub fn get_tags(&self, filter: &Filter, sorter: &Sorter<Tag>) -> Vec<Tag> {
         self.feeds(&Filter::new())
             .iter()
-            .flat_map(|f| f.tags())
+            .flat_map(|f| &f.conf.tags)
             .counts()
             .into_iter()
             .map(|(k, v)| Tag {
                 name: k.to_string(),
                 count: v,
             })
-            .filter(|t| filter.test(&t))
+            .filter(|t| filter.test(t))
             .sorted_by(sorter.0)
             .collect()
     }
@@ -189,7 +189,7 @@ impl FeedManager {
     pub fn get_links(&self, filter: &Filter, sorter: &Sorter<Link>) -> Vec<Link> {
         self.items(filter)
             .into_iter()
-            .flat_map(|i| i.links.clone())
+            .flat_map(|i| i.data.links.clone())
             .sorted_by(sorter.0)
             .collect()
     }
@@ -213,36 +213,29 @@ impl FeedManager {
     fn items(&self, filter: &Filter) -> Vec<&Item> {
         self.feeds
             .iter()
-            .filter(|f| filter.test(f))
+            .filter(|f| filter.test(*f))
             .filter_map(Feed::items)
-            .flat_map(|items| items.iter().filter(|item| filter.test(item)))
+            .flat_map(|items| items.iter().filter(|i| filter.test(*i)))
             .collect()
     }
     fn items_mut(&mut self, filter: &Filter) -> Vec<&mut Item> {
         self.feeds
             .iter_mut()
-            .filter(|feed| filter.test(&&**feed))
+            .filter(|f| filter.test(*f))
             .filter_map(Feed::items_mut)
-            .flat_map(|items| items.iter_mut().filter(|item| filter.test(&&**item)))
+            .flat_map(|items| items.iter_mut().filter(|i| filter.test(*i)))
             .collect()
     }
     fn feeds(&self, filter: &Filter) -> Vec<&Feed> {
-        self.feeds.iter().filter(|feed| filter.test(feed)).collect()
+        self.feeds.iter().filter(|f| filter.test(*f)).collect()
     }
     fn feeds_mut(&mut self, filter: &Filter) -> Vec<&mut Feed> {
-        self.feeds
-            .iter_mut()
-            .filter(|feed| filter.test(&&**feed))
-            .collect()
+        self.feeds.iter_mut().filter(|f| filter.test(*f)).collect()
     }
     fn save(&self) -> std::thread::JoinHandle<()> {
         std::thread::spawn({
             let guard = self.save_mutex.clone();
-            let feeds = self
-                .feeds
-                .iter()
-                .filter_map(SerializableFeed::try_from_feed)
-                .collect_vec();
+            let feeds = self.feeds.clone();
             move || {
                 let _guard = guard.lock();
                 CachedFeeds::save(&feeds).unwrap();
@@ -271,11 +264,7 @@ impl FeedManager {
     fn _fetch_feed(url: &str) -> FetchResult {
         // todo: use async http client
         let data = ureq::get(url).call()?.into_string()?;
-        let data = feed_rs::parser::parse(data.as_bytes()).map(FeedAdapter::from)?;
-        Ok(SerializableFeed {
-            id: FeedId(url.to_string()),
-            data,
-            metrics: FeedMetrics::default(),
-        })
+        let data = feed_rs::parser::parse(data.as_bytes()).map(|d| FeedData::from(d, url))?;
+        Ok((FeedId(url.to_string()), data))
     }
 }

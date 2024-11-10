@@ -4,8 +4,8 @@ use ratatui::Frame;
 use ratatui_helpers::view::View;
 use rrss_core::feed_manager::FeedManager;
 
+use super::centered_rect;
 use crate::app::{AppRequest, ViewKind};
-use crate::centered_rect;
 use crate::theme::StyledWidget;
 
 pub struct PopupView<'a> {
@@ -31,7 +31,7 @@ impl View for PopupView<'_> {
         format!("rrss - info")
     }
     fn compute_area(&self, area: Rect) -> Rect {
-        let (width, height) = (30, 15);
+        let (width, height) = (50, 30);
         let (width, height) = (width.min(area.width), height.min(area.height));
         centered_rect(area, (width, height))
     }

@@ -2,8 +2,12 @@ use std::io::{self};
 use std::ops::Add;
 use std::time::Duration;
 
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::crossterm::event::{self, Event};
+use ratatui::prelude::CrosstermBackend;
 use ratatui::widgets::TableState;
+use ratatui::Terminal;
 use ratatui_helpers::dock::{Dock, DockPosition};
 use ratatui_helpers::keymap::KeyMap;
 use ratatui_helpers::view_controller::ViewController;
@@ -22,7 +26,6 @@ use super::views::popup::PopupView;
 use super::views::prompt::PromptView;
 use super::views::quit::QuitView;
 use super::views::tags::TagView;
-use crate::{try_init_term, try_release_term};
 
 #[derive(PartialEq)]
 pub enum ViewKind {
@@ -201,7 +204,7 @@ impl App {
             AppRequest::OpenDetailedItemView(filter, sorter, idx) => {
                 let items = self.fm.get_items(&filter, &sorter);
                 let item = items.get(idx).unwrap();
-                self.fm.mark_item_as_read(item.id.clone());
+                self.fm.mark_item_as_read(item.data.id.clone());
                 let view = DetailedItemView::new(items, idx);
                 self.vc.push(Box::new(view));
             }
@@ -219,11 +222,11 @@ impl App {
             AppRequest::OpenInfoItemView(item_id) => {
                 if let Some(i) = self.fm.get_item(item_id) {
                     self.handle_request(AppRequest::OpenPopupView(format!(
-                        "id: {}\ntitle: {}\nfiltered: {}\nread: {}",
-                        i.id,
-                        i.title.clone().unwrap(),
-                        i.is_filtered,
-                        i.is_read,
+                        "id: {:?}\ntitle: {}\nfiltered: {}\nread: {}",
+                        i.data.id,
+                        i.data.title.clone().unwrap(),
+                        i.state.is_filtered,
+                        i.state.is_read,
                     )));
                 }
             }
@@ -244,7 +247,9 @@ impl App {
                 if let TaskStatus::Running = self.fm.poll_update_feed() {
                     return;
                 }
-                let id = self.vc.show_status_always(format!("Fetching: {}", feed_id));
+                let id = self
+                    .vc
+                    .show_status_always(format!("Fetching: {}", feed_id.0));
                 let finally = {
                     let status = self.vc.status().clone();
                     move || status.lock().unwrap().remove(id)
@@ -261,7 +266,7 @@ impl App {
             }
             AppRequest::OpenItem(item_id) => {
                 if let Some(item) = self.fm.get_item(item_id.clone()).cloned()
-                    && let Some(link) = &item.links.first()
+                    && let Some(link) = &item.data.links.first()
                 {
                     self.handle_request(AppRequest::MarkItemAsRead(item_id));
                     if let Err(e) = open::that_detached(&link.href) {
@@ -292,4 +297,23 @@ impl App {
             }
         }
     }
+}
+
+pub fn try_init_term() -> Result<Terminal<CrosstermBackend<std::io::Stdout>>, Box<std::io::Error>> {
+    let mut stdout = std::io::stdout();
+    terminal::enable_raw_mode()?;
+    crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    Ok(Terminal::new(CrosstermBackend::new(stdout))?)
+}
+pub fn try_release_term(
+    mut term: Terminal<CrosstermBackend<std::io::Stdout>>,
+) -> Result<(), Box<std::io::Error>> {
+    terminal::disable_raw_mode()?;
+    crossterm::execute!(
+        term.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    term.show_cursor()?;
+    Ok(())
 }

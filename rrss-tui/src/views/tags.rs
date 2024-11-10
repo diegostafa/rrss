@@ -9,8 +9,8 @@ use rrss_core::model::filter::Filter;
 use rrss_core::model::models::Tag;
 use rrss_core::model::sorter::Sorter;
 
+use super::centered_rect;
 use crate::app::{AppRequest, ViewKind};
-use crate::centered_rect;
 use crate::theme::StyledWidget;
 
 pub struct TagView<'row> {

@@ -10,24 +10,24 @@ impl<T> Sorter<T> {
 impl Feed {
     pub const BY_TITLE: Sorter<Self> = Sorter(|a, b| a.name().cmp(&b.name()));
     pub const BY_LATEST_ITEM: Sorter<Self> =
-        Sorter(|a, b| a.metrics.latest_item_date.cmp(&b.metrics.latest_item_date));
+        Sorter(|a, b| a.state.latest_item_date.cmp(&b.state.latest_item_date));
     pub const BY_TYPE: Sorter<Self> =
         Sorter(|a, b| a.feed_type().to_string().cmp(&b.feed_type().to_string()));
-    pub const BY_HITS: Sorter<Self> = Sorter(|a, b| a.metrics.hits.cmp(&b.metrics.hits));
+    pub const BY_HITS: Sorter<Self> = Sorter(|a, b| a.state.hits.cmp(&b.state.hits));
     pub const BY_TOT_UNREADS: Sorter<Self> = Sorter(|a, b| a.tot_unread().cmp(&b.tot_unread()));
 
     pub const BY_TITLE_REV: Sorter<Self> = Sorter(|b, a| a.name().cmp(&b.name()));
     pub const BY_LATEST_ITEM_REV: Sorter<Self> =
-        Sorter(|b, a| a.metrics.latest_item_date.cmp(&b.metrics.latest_item_date));
+        Sorter(|b, a| a.state.latest_item_date.cmp(&b.state.latest_item_date));
     pub const BY_TYPE_REV: Sorter<Self> =
         Sorter(|b, a| a.feed_type().to_string().cmp(&b.feed_type().to_string()));
 }
 impl Item {
-    pub const BY_IS_READ: Sorter<Self> = Sorter(|a, b| a.is_read.cmp(&b.is_read));
-    pub const BY_TITLE: Sorter<Self> = Sorter(|a, b| a.title.cmp(&b.title));
-    pub const BY_POSTED: Sorter<Self> = Sorter(|a, b| a.posted.cmp(&b.posted));
-    pub const BY_TITLE_REV: Sorter<Self> = Sorter(|b, a| a.title.cmp(&b.title));
-    pub const BY_POSTED_REV: Sorter<Self> = Sorter(|b, a| a.posted.cmp(&b.posted));
+    pub const BY_IS_READ: Sorter<Self> = Sorter(|a, b| a.state.is_read.cmp(&b.state.is_read));
+    pub const BY_TITLE: Sorter<Self> = Sorter(|a, b| a.data.title.cmp(&b.data.title));
+    pub const BY_POSTED: Sorter<Self> = Sorter(|a, b| a.data.posted.cmp(&b.data.posted));
+    pub const BY_TITLE_REV: Sorter<Self> = Sorter(|b, a| a.data.title.cmp(&b.data.title));
+    pub const BY_POSTED_REV: Sorter<Self> = Sorter(|b, a| a.data.posted.cmp(&b.data.posted));
 }
 impl Tag {
     pub const BY_NAME: Sorter<Self> = Sorter(|a, b| a.name.cmp(&b.name));

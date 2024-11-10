@@ -253,7 +253,7 @@ impl Input {
                         .skip(self.value.chars().count().max(self.cursor) - self.cursor)
                         .skip_while(|c| !c.is_alphanumeric())
                         .skip_while(|c| c.is_alphanumeric())
-                        .collect::<Vec<char>>();
+                        .collect::<Vec<_>>();
                     let rev_len = rev.len();
                     self.value = rev.into_iter().rev().chain(remaining).collect();
                     self.cursor = rev_len;

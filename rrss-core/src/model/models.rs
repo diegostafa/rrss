@@ -1,7 +1,10 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
+use std::time::Duration;
 
 use chrono::{DateTime, Utc};
+use chrono_humanize::{Accuracy, HumanTime, Tense};
+use feed_rs::model::{FeedType, MediaContent, MediaObject};
 use itertools::Itertools;
 use ratatui::layout::{Alignment, Constraint};
 use ratatui::style::Style;
@@ -9,42 +12,30 @@ use ratatui_helpers::stateful_table::Tabular;
 use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
 
-use super::adapters::{FeedAdapter, FeedTypeAdapter, MediaObjectAdapter};
 use super::sorter::Sorter;
 use crate::config::{FeedFilter, FeedSource};
 use crate::globals::CONFIG;
-use crate::model::pretty_date;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub struct FeedMetrics {
-    pub latest_item_date: Option<DateTime<Utc>>,
-    pub hits: usize,
-    pub is_recent: bool,
-}
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FeedId(pub String);
-impl Display for FeedId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-#[derive(Debug, Clone)]
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Feed {
     pub conf: FeedSource,
-    pub metrics: FeedMetrics,
-    pub data: Option<FeedAdapter>,
+    pub state: FeedState,
+    pub data: Option<FeedData>,
 }
 impl Feed {
-    pub fn refresh_items_metrics(&mut self) {
+    pub fn refresh_items_state(&mut self) {
         if let Some(data) = &mut self.data {
             data.items.iter_mut().for_each(|i| {
                 if let Some(filter) = &self.conf.filter {
-                    i.is_filtered = filter.invert ^ i.title_matches(filter);
+                    i.state.is_filtered = filter.invert ^ i.title_matches(filter);
                 }
             });
         }
     }
-    pub fn merge_feed(&mut self, mut new: FeedAdapter) {
+    pub fn merge_feed(&mut self, mut new: FeedData) {
         match &mut self.data {
             Some(old) => {
                 new.items.retain(|i| !old.items.contains(&i));
@@ -54,17 +45,14 @@ impl Feed {
             }
             _ => self.data = Some(new),
         };
-        self.refresh_items_metrics();
-        self.refresh_feed_metrics();
+        self.refresh_items_state();
+        self.refresh_feed_state();
     }
-    pub fn url(&self) -> &str {
-        &self.conf.url.0
+    pub fn url(&self) -> String {
+        self.conf.url.0.to_string()
     }
     pub fn id(&self) -> &FeedId {
         &self.conf.url
-    }
-    pub fn tags(&self) -> &Vec<String> {
-        &self.conf.tags
     }
     pub fn feed_type(&self) -> FeedTypeAdapter {
         self.data
@@ -81,12 +69,12 @@ impl Feed {
         self.data = None;
     }
     pub fn increment_hits(&mut self) {
-        self.metrics.hits += 1;
+        self.state.hits += 1;
     }
-    pub fn refresh_feed_metrics(&mut self) {
+    pub fn refresh_feed_state(&mut self) {
         if let Some(feed) = &self.data {
-            self.metrics.latest_item_date = feed.items.iter().map(|i| i.posted).max().flatten();
-            self.metrics.is_recent = self.metrics.latest_item_date.map_or(false, |date| {
+            self.state.latest_item_date = feed.items.iter().map(|i| i.data.posted).max().flatten();
+            self.state.is_recent = self.state.latest_item_date.map_or(false, |date| {
                 (Utc::now() - date).num_days() < CONFIG.relative_time_threshold as i64
             })
         }
@@ -96,12 +84,16 @@ impl Feed {
             return false;
         }
         self.items()
-            .map(|i| i.iter().find(|i| !i.is_read && !i.is_filtered).is_some())
+            .map(|i| {
+                i.iter()
+                    .find(|i| !i.state.is_read && !i.state.is_filtered)
+                    .is_some()
+            })
             .unwrap_or_default()
     }
     pub fn tot_unread(&self) -> usize {
         self.items()
-            .map(|i| i.iter().filter(|i| !i.is_read).count())
+            .map(|i| i.iter().filter(|i| !i.state.is_read).count())
             .unwrap_or_default()
     }
     pub fn name(&self) -> String {
@@ -146,7 +138,7 @@ impl Tabular for Feed {
         };
 
         let latest_item_date = self
-            .metrics
+            .state
             .latest_item_date
             .map(pretty_date)
             .unwrap_or_default();
@@ -157,7 +149,7 @@ impl Tabular for Feed {
             format!("({}/{})", tot_unread, tot_items),
             format!("{}", self.name()),
             format!("{}", latest_item_date),
-            format!("{}", self.metrics.hits),
+            format!("{}", self.state.hits),
         ]
     }
     fn column_names() -> Option<Vec<String>> {
@@ -188,7 +180,7 @@ impl Tabular for Feed {
         if self.tot_unread() > 0 {
             style = style.fg(CONFIG.theme.fg_unread_color);
         }
-        if self.metrics.is_recent {
+        if self.state.is_recent {
             style = style.fg(ratatui::style::Color::LightGreen);
         }
         style
@@ -205,28 +197,64 @@ impl Tabular for Feed {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ItemId(pub String);
-impl Display for ItemId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct FeedState {
+    pub latest_item_date: Option<DateTime<Utc>>,
+    pub hits: usize,
+    pub is_recent: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FeedData {
+    pub feed_type: FeedTypeAdapter,
+    pub title: String,
+    pub items: Vec<Item>,
+    pub published: Option<DateTime<Utc>>,
+    pub updated: Option<DateTime<Utc>>,
+    pub links: Vec<Link>,
+    pub authors: Vec<String>,
+    pub description: Option<String>,
+    pub categories: Vec<String>,
+    pub language: Option<String>,
+}
+impl FeedData {
+    pub fn from(feed: feed_rs::model::Feed, url: &str) -> Self {
+        Self {
+            feed_type: FeedTypeAdapter::from(feed.feed_type),
+            title: feed.title.map(|t| t.content).unwrap_or_default(),
+            items: feed
+                .entries
+                .into_iter()
+                .map(|i| Item {
+                    data: ItemData::from(i, url),
+                    state: ItemState {
+                        is_read: false,
+                        is_filtered: false,
+                    },
+                })
+                .collect_vec(),
+            published: feed.published,
+            updated: feed.updated,
+            links: feed.links.into_iter().map(Link::from).collect(),
+            authors: feed.authors.into_iter().map(|a| a.name).collect(),
+            description: feed.description.map(|d| d.content),
+            categories: feed.categories.into_iter().map(|c| c.term).collect(),
+            language: feed.language,
+        }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ItemId(pub String, pub String);
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Item {
-    pub id: ItemId,
-    pub is_read: bool,
-    pub is_filtered: bool,
-    pub title: Option<String>,
-    pub content: Option<String>,
-    pub summary: Option<String>,
-    pub media: Vec<MediaObjectAdapter>,
-    pub posted: Option<DateTime<Utc>>,
-    pub links: Vec<Link>,
+    pub data: ItemData,
+    pub state: ItemState,
 }
 impl Item {
     pub fn title_matches(&self, filter: &FeedFilter) -> bool {
-        if let Some(title) = &self.title {
+        if let Some(title) = &self.data.title {
             return RegexBuilder::new(&filter.pattern)
                 .case_insensitive(filter.case_insensitive)
                 .build()
@@ -238,13 +266,13 @@ impl Item {
 }
 impl PartialEq for Item {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.data.id == other.data.id
     }
 }
 impl Eq for Item {}
 impl Hash for Item {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
+        self.data.id.hash(state);
     }
 }
 impl Tabular for Item {
@@ -255,17 +283,17 @@ impl Tabular for Item {
         vec![Item::BY_IS_READ, Item::BY_TITLE, Item::BY_POSTED]
     }
     fn value(&self) -> Self::Value {
-        self.id.clone()
+        self.data.id.clone()
     }
     fn content(&self) -> Vec<String> {
-        let marker = match self.is_read {
+        let marker = match self.state.is_read {
             true => CONFIG.theme.read_marker,
             _ => CONFIG.theme.unread_marker,
         };
         vec![
             format!("{}", marker),
-            format!("{}", self.title.clone().unwrap_or_default()),
-            format!("{}", self.posted.map(pretty_date).unwrap_or_default()),
+            format!("{}", self.data.title.clone().unwrap_or_default()),
+            format!("{}", self.data.posted.map(pretty_date).unwrap_or_default()),
         ]
     }
     fn column_names() -> Option<Vec<String>> {
@@ -276,17 +304,55 @@ impl Tabular for Item {
     }
     fn style(&self) -> Style {
         let mut style = Style::default();
-        if !self.is_read {
+        if !self.state.is_read {
             style = style
                 .fg(CONFIG.theme.fg_unread_color)
                 .bg(CONFIG.theme.bg_unread_color);
         }
-        if self.is_filtered {
+        if self.state.is_filtered {
             style = style
                 .fg(CONFIG.theme.fg_filtered_color)
                 .bg(CONFIG.theme.bg_filterd_color);
         }
         style
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ItemState {
+    pub is_read: bool,
+    pub is_filtered: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ItemData {
+    pub id: ItemId,
+    pub title: Option<String>,
+    pub content: Option<String>,
+    pub summary: Option<String>,
+    pub media: Vec<MediaObjectAdapter>,
+    pub posted: Option<DateTime<Utc>>,
+    pub links: Vec<Link>,
+}
+impl ItemData {
+    fn from(item: feed_rs::model::Entry, feed_url: &str) -> Self {
+        Self {
+            id: ItemId(feed_url.to_string(), item.id),
+            title: item.title.map(|t| t.content),
+            content: item
+                .content
+                .and_then(|s| s.body)
+                .as_deref()
+                .map(html_to_text),
+            summary: item.summary.map(|s| html_to_text(&s.content)),
+            posted: item.published.or(item.updated),
+            links: item.links.into_iter().map(Link::from).collect(),
+            media: item
+                .media
+                .into_iter()
+                .map(MediaObjectAdapter::from)
+                .collect(),
+        }
     }
 }
 
@@ -353,28 +419,115 @@ impl Tabular for Link {
         Style::default()
     }
 }
-
-pub struct Shortcut {
-    pub name: String,
-    pub shortcut: Vec<String>,
+impl From<feed_rs::model::Link> for Link {
+    fn from(link: feed_rs::model::Link) -> Self {
+        Self {
+            href: link.href,
+            title: link.title,
+            mime_type: link.media_type,
+        }
+    }
 }
-impl Tabular for Shortcut {
-    type Value = String;
-    type ColumnValue = ();
 
-    fn column_values() -> Vec<Self::ColumnValue> {
-        vec![]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MediaContentAdapter {
+    pub url: Option<String>,
+    pub mime_type: Option<String>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub duration: Option<Duration>,
+    pub file_size: Option<u64>,
+}
+impl From<MediaContent> for MediaContentAdapter {
+    fn from(content: MediaContent) -> Self {
+        Self {
+            url: content.url.map(|u| u.to_string()),
+            mime_type: content.content_type.map(|c| {
+                format!(
+                    "{}/{}",
+                    c.ty().as_str().to_ascii_lowercase(),
+                    c.subty().as_str().to_ascii_lowercase()
+                )
+            }),
+            width: content.width,
+            height: content.height,
+            duration: content.duration,
+            file_size: content.size,
+        }
     }
-    fn value(&self) -> Self::Value {
-        self.name.clone()
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MediaObjectAdapter {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub payload: Vec<MediaContentAdapter>,
+}
+impl From<MediaObject> for MediaObjectAdapter {
+    fn from(media: MediaObject) -> Self {
+        Self {
+            title: media.title.map(|t| t.content),
+            description: media.description.map(|d| d.content),
+            payload: media
+                .content
+                .into_iter()
+                .map(MediaContentAdapter::from)
+                .collect(),
+        }
     }
-    fn content(&self) -> Vec<String> {
-        vec![self.name.clone(), self.shortcut.iter().join(",")]
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub enum FeedTypeAdapter {
+    #[default]
+    Unknown,
+    Atom,
+    JSON,
+    RSS0,
+    RSS1,
+    RSS2,
+}
+impl From<FeedType> for FeedTypeAdapter {
+    fn from(value: FeedType) -> Self {
+        match value {
+            FeedType::Atom => FeedTypeAdapter::Atom,
+            FeedType::JSON => FeedTypeAdapter::JSON,
+            FeedType::RSS0 => FeedTypeAdapter::RSS0,
+            FeedType::RSS1 => FeedTypeAdapter::RSS1,
+            FeedType::RSS2 => FeedTypeAdapter::RSS2,
+        }
     }
-    fn column_names() -> Option<Vec<String>> {
-        Some(vec![format!("Name"), format!("Shortcut")])
+}
+impl Display for FeedTypeAdapter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FeedTypeAdapter::Unknown => write!(f, "Unknown"),
+            FeedTypeAdapter::Atom => write!(f, "Atom"),
+            FeedTypeAdapter::JSON => write!(f, "JSON"),
+            FeedTypeAdapter::RSS0 => write!(f, "RSS0"),
+            FeedTypeAdapter::RSS1 => write!(f, "RSS1"),
+            FeedTypeAdapter::RSS2 => write!(f, "RSS2"),
+        }
     }
-    fn column_constraints() -> Vec<fn(u16) -> Constraint> {
-        vec![Constraint::Length, Constraint::Length]
+}
+
+pub fn pretty_date(date: DateTime<Utc>) -> String {
+    let delta_days = (Utc::now() - date).num_days();
+    match delta_days {
+        0 => HumanTime::from(date).to_text_en(Accuracy::Rough, Tense::Past),
+        _ if delta_days < CONFIG.relative_time_threshold as i64 => {
+            format!("{}, {}", HumanTime::from(date), date.format("%a, %H:%M"))
+        }
+        _ => date.format(CONFIG.theme.date_format.as_str()).to_string(),
     }
+}
+
+pub fn html_to_text(html: &str) -> String {
+    html2text::config::plain()
+        .raw_mode(true)
+        .no_table_borders()
+        .string_from_read(html.as_bytes(), 1000)
+        .unwrap()
+        .trim()
+        .to_string()
 }

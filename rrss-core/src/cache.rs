@@ -2,29 +2,11 @@ use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 
 use directories::ProjectDirs;
-use serde::{Deserialize, Serialize};
 
 use crate::globals::{CACHE_FILE, PROJECT_NAME};
-use crate::model::adapters::FeedAdapter;
-use crate::model::models::{Feed, FeedId, FeedMetrics};
+use crate::model::models::Feed;
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SerializableFeed {
-    pub id: FeedId,
-    pub data: FeedAdapter,
-    pub metrics: FeedMetrics,
-}
-impl SerializableFeed {
-    pub fn try_from_feed(feed: &Feed) -> Option<Self> {
-        feed.data.as_ref().map(|data| Self {
-            id: feed.id().clone(),
-            data: data.clone(),
-            metrics: feed.metrics.clone(),
-        })
-    }
-}
-
-pub struct CachedFeeds();
+pub struct CachedFeeds {}
 impl CachedFeeds {
     pub fn init() {
         let proj = ProjectDirs::from("", "", PROJECT_NAME).unwrap();
@@ -35,7 +17,7 @@ impl CachedFeeds {
         }
     }
 
-    pub fn save(feeds: &[SerializableFeed]) -> Result<(), std::io::Error> {
+    pub fn save(feeds: &[Feed]) -> Result<(), std::io::Error> {
         let path = ProjectDirs::from("", "", PROJECT_NAME)
             .unwrap()
             .data_dir()
@@ -49,7 +31,7 @@ impl CachedFeeds {
         file.write_all(&bincode::serialize(feeds).unwrap())?;
         Ok(())
     }
-    pub fn load() -> Result<Vec<SerializableFeed>, std::io::Error> {
+    pub fn load() -> Result<Vec<Feed>, std::io::Error> {
         let path = ProjectDirs::from("", "", PROJECT_NAME)
             .unwrap()
             .data_dir()

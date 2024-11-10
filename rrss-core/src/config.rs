@@ -5,7 +5,6 @@ use itertools::Itertools;
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 
-use crate::cache::SerializableFeed;
 use crate::model::models::{Feed, FeedId};
 
 #[derive(Deserialize, Default)]
@@ -121,7 +120,7 @@ pub struct PartialFeedFilter {
     invert: Option<bool>,
     case_insensitive: Option<bool>,
 }
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FeedFilter {
     pub pattern: String,
     pub invert: bool,
@@ -145,7 +144,8 @@ struct PartialFeedSource {
     filter: Option<PartialFeedFilter>,
     max_items: Option<u32>,
 }
-#[derive(Debug, Clone)]
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FeedSource {
     pub url: FeedId,
     pub tags: Vec<String>,
@@ -180,19 +180,21 @@ impl Hash for FeedSource {
 pub struct PartialSources {
     sources: Option<Vec<PartialFeedSource>>,
 }
-pub struct Sources(pub Vec<FeedSource>);
+pub struct Sources {
+    sources: Vec<FeedSource>,
+}
 impl Sources {
-    pub fn bind_to_cached(self, cached_feeds: Vec<SerializableFeed>) -> Vec<Feed> {
-        self.0
+    pub fn to_feeds(self, feeds: Vec<Feed>) -> Vec<Feed> {
+        self.sources
             .into_iter()
-            .map(|s| {
-                let feed = cached_feeds.iter().find(|f| f.id == s.url);
+            .map(|source| {
+                let feed = feeds.iter().find(|f| *f.id() == source.url);
                 let mut feed = Feed {
-                    conf: s.clone(),
-                    data: feed.map(|f| f.data.clone()),
-                    metrics: feed.map(|f| f.metrics.clone()).unwrap_or_default(),
+                    conf: source.clone(),
+                    data: feed.map(|f| f.data.clone()).unwrap_or_default(),
+                    state: feed.map(|f| f.state.clone()).unwrap_or_default(),
                 };
-                feed.refresh_items_metrics();
+                feed.refresh_items_state();
                 feed
             })
             .collect()
@@ -211,8 +213,8 @@ impl From<PartialSources> for Sources {
                     }
                 }
             }
-            return Sources(uniques);
+            return Sources { sources: uniques };
         }
-        Sources(vec![])
+        Sources { sources: vec![] }
     }
 }
