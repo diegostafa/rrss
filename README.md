@@ -32,6 +32,7 @@ todos
 
 - sort by columns
 - global search in all items and feeds
+- export as opml
 - bookmarking/item ratings --> filter by / sort by
 - don't use clap for queries, move queries to rrss-core, define a grammar and
   parse a query string so that it can be used in the tui too

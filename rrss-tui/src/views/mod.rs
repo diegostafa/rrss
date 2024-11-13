@@ -7,7 +7,6 @@ pub mod items;
 pub mod links;
 pub mod popup;
 pub mod prompt;
-pub mod quit;
 pub mod tags;
 
 pub fn centered_rect(area: Rect, (width, height): (u16, u16)) -> Rect {

@@ -24,7 +24,6 @@ use super::views::items::ItemsView;
 use super::views::links::LinksView;
 use super::views::popup::PopupView;
 use super::views::prompt::PromptView;
-use super::views::quit::QuitView;
 use super::views::tags::TagView;
 
 #[derive(PartialEq)]
@@ -92,7 +91,7 @@ impl Add for AppRequest {
                 reqs2.insert(0, self);
                 AppRequest::Chain(reqs2)
             }
-            (_, _) => AppRequest::Chain(vec![self, other]),
+            _ => AppRequest::Chain(vec![self, other]),
         }
     }
 }
@@ -106,7 +105,7 @@ impl App {
     pub fn new(fm: FeedManager) -> Self {
         Self {
             fm,
-            vc: ViewController::new(Box::new(QuitView), Duration::from_secs(3)),
+            vc: ViewController::new(Duration::from_secs(3)),
             keymap: KeyMap::default(),
         }
     }
