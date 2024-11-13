@@ -4,8 +4,8 @@
 use clap::Parser;
 use cli::{Cli, Commands, QueryCommand, QueryTarget};
 use rrss_core::feed_manager::{FeedManager, TaskStatus};
-use rrss_core::model::filter::Filter;
-use rrss_core::model::sorter::Sorter;
+use rrss_core::filter::Filter;
+use rrss_core::sorter::Sorter;
 
 mod cli;
 

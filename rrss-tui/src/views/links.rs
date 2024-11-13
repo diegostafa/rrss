@@ -5,7 +5,7 @@ use ratatui::Frame;
 use ratatui_helpers::stateful_table::{IndexedRow, StatefulTable};
 use ratatui_helpers::view::View;
 use rrss_core::feed_manager::FeedManager;
-use rrss_core::model::models::Link;
+use rrss_core::models::Link;
 
 use crate::app::{AppRequest, ViewKind};
 use crate::theme::StyledWidget;

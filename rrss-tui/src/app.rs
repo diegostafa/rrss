@@ -12,9 +12,9 @@ use ratatui_helpers::dock::{Dock, DockPosition};
 use ratatui_helpers::keymap::KeyMap;
 use ratatui_helpers::view_controller::ViewController;
 use rrss_core::feed_manager::{FeedManager, TaskStatus};
-use rrss_core::model::filter::Filter;
-use rrss_core::model::models::{Feed, FeedId, Item, ItemId, Tag};
-use rrss_core::model::sorter::Sorter;
+use rrss_core::filter::Filter;
+use rrss_core::models::{Feed, FeedId, Item, ItemId, Tag};
+use rrss_core::sorter::Sorter;
 
 use super::keymaps::{AppCommand, AppKeyMap};
 use super::views::detailed_item::DetailedItemView;
@@ -216,7 +216,11 @@ impl App {
 
             AppRequest::OpenInfoFeedView(feed_id) => {
                 if let Some(f) = self.fm.get_feed(feed_id) {
-                    self.handle_request(AppRequest::OpenPopupView(format!("{:?}", f.conf)));
+                    self.handle_request(AppRequest::OpenPopupView(format!(
+                        "{:?}\n{:?}",
+                        f.conf,
+                        f.data.as_ref().map(|d| &d.links)
+                    )));
                 }
             }
             AppRequest::OpenInfoItemView(item_id) => {

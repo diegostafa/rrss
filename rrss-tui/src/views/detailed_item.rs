@@ -5,9 +5,9 @@ use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 use ratatui_helpers::view::View;
 use rrss_core::feed_manager::FeedManager;
+use rrss_core::filter::Filter;
 use rrss_core::globals::CONFIG;
-use rrss_core::model::filter::Filter;
-use rrss_core::model::models::Item;
+use rrss_core::models::Item;
 
 use crate::app::{AppRequest, ViewKind};
 use crate::theme::StyledWidget;

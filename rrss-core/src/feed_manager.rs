@@ -10,10 +10,10 @@ use ratatui_helpers::config::parse_toml;
 
 use crate::cache::CachedFeeds;
 use crate::config::{PartialSources, Sources};
+use crate::filter::{Filter, FilterTest};
 use crate::globals::{CONFIG, PROJECT_NAME, SOURCES_FILE};
-use crate::model::filter::{Filter, FilterTest};
-use crate::model::models::{Feed, FeedData, FeedId, Item, ItemId, Link, Tag};
-use crate::model::sorter::Sorter;
+use crate::models::{Feed, FeedData, FeedId, Item, ItemId, Link, Tag};
+use crate::sorter::Sorter;
 
 pub type RequestError = Box<dyn std::error::Error + Send + Sync>;
 pub type FetchResult = Result<(FeedId, FeedData), RequestError>;

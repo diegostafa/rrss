@@ -5,7 +5,7 @@ use itertools::Itertools;
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 
-use crate::model::models::{Feed, FeedId};
+use crate::models::{Feed, FeedId};
 
 #[derive(Deserialize, Default)]
 pub struct PartialTheme {

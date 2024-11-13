@@ -9,9 +9,9 @@ use ratatui_helpers::keymap::{KeyMap, ShortCut};
 use ratatui_helpers::stateful_table::{IndexedRow, StatefulTable};
 use ratatui_helpers::view::View;
 use rrss_core::feed_manager::FeedManager;
-use rrss_core::model::filter::Filter;
-use rrss_core::model::models::{Feed, Item, Tag};
-use rrss_core::model::sorter::Sorter;
+use rrss_core::filter::Filter;
+use rrss_core::models::{Feed, Item, Tag};
+use rrss_core::sorter::Sorter;
 
 use crate::app::{AppRequest, ViewKind};
 use crate::theme::StyledWidget;

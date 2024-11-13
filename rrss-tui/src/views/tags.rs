@@ -5,9 +5,9 @@ use ratatui::Frame;
 use ratatui_helpers::stateful_table::{IndexedRow, StatefulTable};
 use ratatui_helpers::view::View;
 use rrss_core::feed_manager::FeedManager;
-use rrss_core::model::filter::Filter;
-use rrss_core::model::models::Tag;
-use rrss_core::model::sorter::Sorter;
+use rrss_core::filter::Filter;
+use rrss_core::models::Tag;
+use rrss_core::sorter::Sorter;
 
 use super::centered_rect;
 use crate::app::{AppRequest, ViewKind};

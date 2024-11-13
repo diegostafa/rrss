@@ -4,7 +4,7 @@ use std::io::{Read, Write};
 use directories::ProjectDirs;
 
 use crate::globals::{CACHE_FILE, PROJECT_NAME};
-use crate::model::models::Feed;
+use crate::models::Feed;
 
 pub struct CachedFeeds {}
 impl CachedFeeds {
