@@ -22,7 +22,7 @@ pub struct FeedsView<'row> {
     sorter: Sorter<Feed>,
     keymap: FeedsKeyMap,
 }
-impl<'row> FeedsView<'row> {
+impl FeedsView<'_> {
     pub fn new(
         fm: &FeedManager,
         filter: Filter,

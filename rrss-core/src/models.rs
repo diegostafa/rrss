@@ -38,7 +38,7 @@ impl Feed {
     pub fn merge_feed(&mut self, mut new: FeedData) {
         match &mut self.data {
             Some(old) => {
-                new.items.retain(|i| !old.items.contains(&i));
+                new.items.retain(|i| !old.items.contains(i));
                 old.items.extend(new.items);
                 old.items.sort_by(Item::BY_POSTED_REV.0);
                 old.items.truncate(self.conf.max_items as usize);
@@ -83,13 +83,9 @@ impl Feed {
         if self.conf.filter.is_none() {
             return false;
         }
-        self.items()
-            .map(|i| {
-                i.iter()
-                    .find(|i| !i.state.is_read && !i.state.is_filtered)
-                    .is_some()
-            })
-            .unwrap_or_default()
+        self.items().map_or(false, |i| {
+            i.iter().any(|i| !i.state.is_read && !i.state.is_filtered)
+        })
     }
     pub fn tot_unread(&self) -> usize {
         self.items()
@@ -511,7 +507,7 @@ impl Display for FeedTypeAdapter {
     }
 }
 
-pub fn pretty_date(date: DateTime<Utc>) -> String {
+fn pretty_date(date: DateTime<Utc>) -> String {
     let delta_days = (Utc::now() - date).num_days();
     match delta_days {
         0 => HumanTime::from(date).to_text_en(Accuracy::Rough, Tense::Past),
@@ -522,7 +518,7 @@ pub fn pretty_date(date: DateTime<Utc>) -> String {
     }
 }
 
-pub fn html_to_text(html: &str) -> String {
+fn html_to_text(html: &str) -> String {
     html2text::config::plain()
         .raw_mode(true)
         .no_table_borders()

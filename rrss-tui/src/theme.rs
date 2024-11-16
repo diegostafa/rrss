@@ -36,7 +36,7 @@ impl StyledWidget {
         }
         block
     }
-    pub fn table_padding<'a>() -> Padding {
+    fn table_padding() -> Padding {
         let mut padding = Padding::default();
         if CONFIG.theme.borders {
             padding.add_value(1);
