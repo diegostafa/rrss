@@ -30,6 +30,7 @@ max_items = 100
 
 todos
 
+- notify when specific feed (feed source flag) gets new item after an update
 - sort by columns
 - global search in all items and feeds
 - export as opml

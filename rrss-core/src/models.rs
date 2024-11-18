@@ -1,10 +1,8 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
-use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
-use feed_rs::model::{FeedType, MediaContent, MediaObject};
 use itertools::Itertools;
 use ratatui::layout::{Alignment, Constraint};
 use ratatui::style::Style;
@@ -54,10 +52,10 @@ impl Feed {
     pub fn id(&self) -> &FeedId {
         &self.conf.url
     }
-    pub fn feed_type(&self) -> FeedTypeAdapter {
+    pub fn feed_type(&self) -> FeedType {
         self.data
             .as_ref()
-            .map_or(FeedTypeAdapter::Unknown, |d| d.feed_type.clone())
+            .map_or(FeedType(None), |d| d.feed_type.clone())
     }
     pub fn items(&self) -> Option<&Vec<Item>> {
         self.data.as_ref().map(|d| &d.items)
@@ -202,7 +200,7 @@ pub struct FeedState {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FeedData {
-    pub feed_type: FeedTypeAdapter,
+    pub feed_type: FeedType,
     pub title: String,
     pub items: Vec<Item>,
     pub published: Option<DateTime<Utc>>,
@@ -216,7 +214,7 @@ pub struct FeedData {
 impl FeedData {
     pub fn from(feed: feed_rs::model::Feed, url: &str) -> Self {
         Self {
-            feed_type: FeedTypeAdapter::from(feed.feed_type),
+            feed_type: FeedType(Some(feed.feed_type)),
             title: feed.title.map(|t| t.content).unwrap_or_default(),
             items: feed
                 .entries
@@ -231,7 +229,7 @@ impl FeedData {
                 .collect_vec(),
             published: feed.published,
             updated: feed.updated,
-            links: feed.links.into_iter().map(Link::from).collect(),
+            links: feed.links.into_iter().map(Link).collect(),
             authors: feed.authors.into_iter().map(|a| a.name).collect(),
             description: feed.description.map(|d| d.content),
             categories: feed.categories.into_iter().map(|c| c.term).collect(),
@@ -326,7 +324,7 @@ pub struct ItemData {
     pub title: Option<String>,
     pub content: Option<String>,
     pub summary: Option<String>,
-    pub media: Vec<MediaObjectAdapter>,
+    pub media: Vec<MediaObject>,
     pub posted: Option<DateTime<Utc>>,
     pub links: Vec<Link>,
 }
@@ -342,12 +340,8 @@ impl ItemData {
                 .map(html_to_text),
             summary: item.summary.map(|s| html_to_text(&s.content)),
             posted: item.published.or(item.updated),
-            links: item.links.into_iter().map(Link::from).collect(),
-            media: item
-                .media
-                .into_iter()
-                .map(MediaObjectAdapter::from)
-                .collect(),
+            links: item.links.into_iter().map(Link).collect(),
+            media: item.media.into_iter().map(MediaObject).collect(),
         }
     }
 }
@@ -378,11 +372,7 @@ impl Tabular for Tag {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Link {
-    pub href: String,
-    pub title: Option<String>,
-    pub mime_type: Option<String>,
-}
+pub struct Link(pub feed_rs::model::Link);
 impl Tabular for Link {
     type Value = String;
     type ColumnValue = ();
@@ -391,13 +381,13 @@ impl Tabular for Link {
     }
 
     fn value(&self) -> Self::Value {
-        self.href.clone()
+        self.0.href.clone()
     }
     fn content(&self) -> Vec<String> {
         vec![
-            format!("{}", self.title.clone().unwrap_or_default()),
-            format!("{}", self.mime_type.clone().unwrap_or_default()),
-            format!("{}", self.href),
+            format!("{}", self.0.title.clone().unwrap_or_default()),
+            format!("{}", self.0.media_type.clone().unwrap_or_default()),
+            format!("{}", self.0.href),
         ]
     }
     fn column_names() -> Option<Vec<String>> {
@@ -415,94 +405,24 @@ impl Tabular for Link {
         Style::default()
     }
 }
-impl From<feed_rs::model::Link> for Link {
-    fn from(link: feed_rs::model::Link) -> Self {
-        Self {
-            href: link.href,
-            title: link.title,
-            mime_type: link.media_type,
-        }
-    }
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct MediaContentAdapter {
-    pub url: Option<String>,
-    pub mime_type: Option<String>,
-    pub width: Option<u32>,
-    pub height: Option<u32>,
-    pub duration: Option<Duration>,
-    pub file_size: Option<u64>,
-}
-impl From<MediaContent> for MediaContentAdapter {
-    fn from(content: MediaContent) -> Self {
-        Self {
-            url: content.url.map(|u| u.to_string()),
-            mime_type: content.content_type.map(|c| {
-                format!(
-                    "{}/{}",
-                    c.ty().as_str().to_ascii_lowercase(),
-                    c.subty().as_str().to_ascii_lowercase()
-                )
-            }),
-            width: content.width,
-            height: content.height,
-            duration: content.duration,
-            file_size: content.size,
-        }
-    }
-}
+pub struct MediaContent(pub feed_rs::model::MediaContent);
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct MediaObjectAdapter {
-    pub title: Option<String>,
-    pub description: Option<String>,
-    pub payload: Vec<MediaContentAdapter>,
-}
-impl From<MediaObject> for MediaObjectAdapter {
-    fn from(media: MediaObject) -> Self {
-        Self {
-            title: media.title.map(|t| t.content),
-            description: media.description.map(|d| d.content),
-            payload: media
-                .content
-                .into_iter()
-                .map(MediaContentAdapter::from)
-                .collect(),
-        }
-    }
-}
+pub struct MediaObject(pub feed_rs::model::MediaObject);
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub enum FeedTypeAdapter {
-    #[default]
-    Unknown,
-    Atom,
-    JSON,
-    RSS0,
-    RSS1,
-    RSS2,
-}
-impl From<FeedType> for FeedTypeAdapter {
-    fn from(value: FeedType) -> Self {
-        match value {
-            FeedType::Atom => FeedTypeAdapter::Atom,
-            FeedType::JSON => FeedTypeAdapter::JSON,
-            FeedType::RSS0 => FeedTypeAdapter::RSS0,
-            FeedType::RSS1 => FeedTypeAdapter::RSS1,
-            FeedType::RSS2 => FeedTypeAdapter::RSS2,
-        }
-    }
-}
-impl Display for FeedTypeAdapter {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FeedType(pub Option<feed_rs::model::FeedType>);
+impl Display for FeedType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FeedTypeAdapter::Unknown => write!(f, "Unknown"),
-            FeedTypeAdapter::Atom => write!(f, "Atom"),
-            FeedTypeAdapter::JSON => write!(f, "JSON"),
-            FeedTypeAdapter::RSS0 => write!(f, "RSS0"),
-            FeedTypeAdapter::RSS1 => write!(f, "RSS1"),
-            FeedTypeAdapter::RSS2 => write!(f, "RSS2"),
+        match &self.0 {
+            None => write!(f, "Unknown"),
+            Some(feed_rs::model::FeedType::Atom) => write!(f, "Atom"),
+            Some(feed_rs::model::FeedType::JSON) => write!(f, "JSON"),
+            Some(feed_rs::model::FeedType::RSS0) => write!(f, "RSS0"),
+            Some(feed_rs::model::FeedType::RSS1) => write!(f, "RSS1"),
+            Some(feed_rs::model::FeedType::RSS2) => write!(f, "RSS2"),
         }
     }
 }

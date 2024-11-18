@@ -36,7 +36,7 @@ impl Tag {
     pub const BY_COUNT_REV: Sorter<Self> = Sorter(|b, a| a.count.cmp(&b.count));
 }
 impl Link {
-    pub const BY_TITLE: Sorter<Self> = Sorter(|a, b| a.title.cmp(&b.title));
-    pub const BY_HREF: Sorter<Self> = Sorter(|a, b| a.href.cmp(&b.href));
-    pub const BY_MIME: Sorter<Self> = Sorter(|a, b| a.mime_type.cmp(&b.mime_type));
+    pub const BY_TITLE: Sorter<Self> = Sorter(|a, b| a.0.title.cmp(&b.0.title));
+    pub const BY_HREF: Sorter<Self> = Sorter(|a, b| a.0.href.cmp(&b.0.href));
+    pub const BY_MIME: Sorter<Self> = Sorter(|a, b| a.0.media_type.cmp(&b.0.media_type));
 }

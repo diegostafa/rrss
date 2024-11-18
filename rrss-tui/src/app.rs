@@ -272,7 +272,7 @@ impl App {
                     && let Some(link) = &item.data.links.first()
                 {
                     self.handle_request(AppRequest::MarkItemAsRead(item_id));
-                    if let Err(e) = open::that_detached(&link.href) {
+                    if let Err(e) = open::that_detached(&link.0.href) {
                         self.handle_request(AppRequest::OpenPopupView(e.to_string()));
                     }
                 }

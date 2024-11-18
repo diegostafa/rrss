@@ -64,7 +64,12 @@ impl DetailedItemView<'_> {
             item.data
                 .content
                 .or(item.data.summary)
-                .or(item.data.media.first().and_then(|c| c.description.clone()))
+                .or(item
+                    .data
+                    .media
+                    .first()
+                    .and_then(|c| c.0.description.as_ref())
+                    .map(|a| a.content.clone()))
                 .unwrap_or_default(),
         ));
 
@@ -91,7 +96,7 @@ impl View for DetailedItemView<'_> {
             Event::Key(ev) => match ev.code {
                 KeyCode::Char('o') => {
                     if let Some(link) = self.item().data.links.first()
-                        && let Err(e) = open::that_detached(&link.href)
+                        && let Err(e) = open::that_detached(&link.0.href)
                     {
                         return AppRequest::OpenPopupView(e.to_string());
                     }
