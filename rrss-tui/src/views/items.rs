@@ -126,6 +126,20 @@ impl View for ItemsView<'_> {
                             );
                         }
                     }
+                    MouseEventKind::Down(MouseButton::Middle) => {
+                        if let Some(row) = self.table.screen_coords_to_row_index(pos) {
+                            self.table.select_absolute(row);
+                        }
+                    }
+                    MouseEventKind::Up(MouseButton::Middle) => {
+                        if let Some(row) = self.table.screen_coords_to_row_index(pos)
+                            && let Some(idx) = self.table.selected_row()
+                            && row == idx
+                            && let Some(id) = self.table.selected_value()
+                        {
+                            return AppRequest::OpenItem(id.clone());
+                        }
+                    }
                     _ => {}
                 }
             }

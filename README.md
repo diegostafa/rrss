@@ -30,10 +30,11 @@ max_items = 100
 
 todos
 
+- hard update feeds (replace existing items)
 - notify when specific feeds (feed source flag) gets new items after an update
 - sort by columns
 - global search in all items and feeds
 - export as opml
 - bookmarking/item ratings --> filter by / sort by
-- don't use clap for queries, move queries to rrss-core, define a grammar and
-  parse a query string so that it can be used in the tui too
+- define a grammar for queries so that it can be used in the tui too
+    - target:feed_id if:unread if:(posted < date)...
