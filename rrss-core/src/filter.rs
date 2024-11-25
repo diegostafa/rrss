@@ -101,11 +101,11 @@ impl FilterTest<Item> for Filter {
         if let Some(p) = &self.item_contains {
             if let Some(title) = &e.data.title {
                 test = test && title.to_lowercase().contains(&p.to_lowercase());
-            }
-            if let Some(content) = &e.data.content {
+            } else if let Some(content) = &e.data.content {
                 test = test && content.to_lowercase().contains(&p.to_lowercase());
+            } else {
+                test = false;
             }
-            test = test && false;
         }
         if let Some(_) = self.unfiltered {
             test = test && !e.state.is_filtered;
