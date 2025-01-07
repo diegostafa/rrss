@@ -22,7 +22,7 @@ impl StyledWidget {
         state: TableState,
         title: Option<String>,
     ) -> StatefulTable<'a, IndexedRow<T>> {
-        StatefulTable::new(IndexedRow::from(data), state, Self::table_style(), title)
+        StatefulTable::new_indexed(data, state, Self::table_style(), title)
     }
     pub fn block<'a>() -> Block<'a> {
         let mut block = Block::new();

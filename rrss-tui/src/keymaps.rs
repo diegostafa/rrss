@@ -3,6 +3,7 @@ use std::fmt::Display;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui_helpers::keymap::{KeyMap, ShortCut};
 
+#[derive(Clone)]
 pub enum AppCommand {
     QuitView,
     Search,

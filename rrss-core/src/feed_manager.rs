@@ -169,7 +169,7 @@ impl FeedManager {
                 count: v,
             })
             .filter(|t| filter.test(t))
-            .sorted_by(sorter.0)
+            .sorted_by(|a, b| sorter.sort(a, b))
             .collect()
     }
     pub fn get_feeds(&self, filter: &Filter, sorter: &Sorter<Feed>) -> Vec<Feed> {

@@ -5,6 +5,9 @@ use super::models::{Feed, Item, Link, Tag};
 #[derive(Clone, PartialEq)]
 pub struct Sorter<T>(pub fn(&T, &T) -> Ordering);
 impl<T> Sorter<T> {
+    pub fn sort(&self, a: &T, b: &T) -> Ordering {
+        (self.0)(a, b)
+    }
     pub const NONE: Sorter<T> = Self(|_, _| Ordering::Equal);
 }
 impl Feed {

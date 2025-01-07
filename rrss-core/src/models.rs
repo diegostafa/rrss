@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
@@ -10,7 +11,6 @@ use ratatui_helpers::stateful_table::Tabular;
 use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
 
-use super::sorter::Sorter;
 use crate::config::{FeedFilter, FeedSource};
 use crate::globals::CONFIG;
 
@@ -104,20 +104,22 @@ impl PartialEq for Feed {
 }
 impl Tabular for Feed {
     type Value = FeedId;
-    type ColumnValue = Sorter<Feed>;
-
+    fn cmp_by_col(&self, other: &Self, col: usize) -> Ordering {
+        match col {
+            0 => self.has_new_unfiltered().cmp(&other.has_new_unfiltered()),
+            1 => self
+                .feed_type()
+                .to_string()
+                .cmp(&other.feed_type().to_string()),
+            2 => Feed::BY_TOT_UNREADS.sort(self, other),
+            3 => Feed::BY_TITLE.sort(self, other),
+            4 => Feed::BY_LATEST_ITEM.sort(self, other),
+            5 => Feed::BY_HITS.sort(self, other),
+            _ => panic!(),
+        }
+    }
     fn value(&self) -> Self::Value {
         self.id().clone()
-    }
-    fn column_values() -> Vec<Self::ColumnValue> {
-        vec![
-            Feed::BY_TOT_UNREADS,
-            Feed::BY_TYPE,
-            Feed::BY_TOT_UNREADS,
-            Feed::BY_TITLE,
-            Feed::BY_LATEST_ITEM,
-            Feed::BY_HITS,
-        ]
     }
     fn content(&self) -> Vec<String> {
         let empty = vec![];
@@ -271,11 +273,15 @@ impl Hash for Item {
 }
 impl Tabular for Item {
     type Value = ItemId;
-    type ColumnValue = Sorter<Item>;
-
-    fn column_values() -> Vec<Self::ColumnValue> {
-        vec![Item::BY_IS_READ, Item::BY_TITLE, Item::BY_POSTED]
+    fn cmp_by_col(&self, other: &Self, col: usize) -> Ordering {
+        match col {
+            0 => self.state.is_read.cmp(&false),
+            1 => Item::BY_TITLE.sort(self, other),
+            2 => Item::BY_POSTED.sort(self, other),
+            _ => panic!(),
+        }
     }
+
     fn value(&self) -> Self::Value {
         self.data.id.clone()
     }
@@ -353,10 +359,6 @@ pub struct Tag {
 }
 impl Tabular for Tag {
     type Value = String;
-    type ColumnValue = Sorter<Tag>;
-    fn column_values() -> Vec<Self::ColumnValue> {
-        vec![Tag::BY_NAME, Tag::BY_COUNT]
-    }
     fn value(&self) -> Self::Value {
         self.name.clone()
     }
@@ -375,11 +377,6 @@ impl Tabular for Tag {
 pub struct Link(pub feed_rs::model::Link);
 impl Tabular for Link {
     type Value = String;
-    type ColumnValue = ();
-    fn column_values() -> Vec<Self::ColumnValue> {
-        vec![]
-    }
-
     fn value(&self) -> Self::Value {
         self.0.href.clone()
     }
@@ -400,7 +397,6 @@ impl Tabular for Link {
     fn column_constraints() -> Vec<fn(u16) -> Constraint> {
         vec![Constraint::Length, Constraint::Length, Constraint::Fill]
     }
-
     fn style(&self) -> Style {
         Style::default()
     }

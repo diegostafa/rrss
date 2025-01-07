@@ -19,8 +19,8 @@ pub struct HelpView<'a> {
     items_table: StatefulTable<'a, ShortCut<ItemsCommand>>,
     layout: Layout,
 }
-impl HelpView<'_> {
-    pub fn new() -> Self {
+impl Default for HelpView<'_> {
+    fn default() -> Self {
         Self {
             app_table: StyledWidget::table(
                 AppKeyMap::default().0,
@@ -47,6 +47,7 @@ impl HelpView<'_> {
         }
     }
 }
+
 impl View for HelpView<'_> {
     type Model = FeedManager;
     type Signal = AppRequest;

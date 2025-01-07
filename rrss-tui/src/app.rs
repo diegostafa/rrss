@@ -211,7 +211,7 @@ impl App {
                 self.fm.get_links(&filter, &Sorter::NONE),
             ))),
             AppRequest::OpenPopupView(msg) => self.vc.push(Box::new(PopupView::new(msg))),
-            AppRequest::OpenHelpView => self.vc.push(Box::new(HelpView::new())),
+            AppRequest::OpenHelpView => self.vc.push(Box::new(HelpView::default())),
 
             AppRequest::OpenInfoFeedView(feed_id) => {
                 if let Some(f) = self.fm.get_feed(feed_id) {

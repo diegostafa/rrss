@@ -162,7 +162,7 @@ impl View for ItemsView<'_> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ItemsCommand {
     OpenItem,
     ViewItem,

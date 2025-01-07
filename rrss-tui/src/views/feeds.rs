@@ -153,7 +153,7 @@ impl View for FeedsView<'_> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FeedsCommand {
     UpdateFeeds,
     UpdateFeed,

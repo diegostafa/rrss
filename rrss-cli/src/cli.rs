@@ -36,8 +36,6 @@ pub enum QueryCommand {
     All,
     Read,
     Unread,
-    ReadCount,
-    UnreadCount,
     Tag { tag: String },
     Contains { pattern: String },
 }

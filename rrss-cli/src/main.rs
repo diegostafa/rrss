@@ -45,14 +45,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         println!("{:?}", r.id());
                     }
                 }
-                QueryCommand::ReadCount => {
-                    let res = fm.get_feeds(&Filter::new().read_feed(), &Sorter::NONE);
-                    println!("{:?}", res.len());
-                }
-                QueryCommand::UnreadCount => {
-                    let res = fm.get_feeds(&Filter::new().unread_feed(), &Sorter::NONE);
-                    println!("{:?}", res.len());
-                }
                 QueryCommand::All => {
                     let res = fm.get_feeds(&Filter::new(), &Sorter::NONE);
                     for r in res {
@@ -84,14 +76,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for r in res {
                         println!("{:?}", r.data.id);
                     }
-                }
-                QueryCommand::ReadCount => {
-                    let res = fm.get_items(&Filter::new().read_item(), &Sorter::NONE);
-                    println!("{:?}", res.len());
-                }
-                QueryCommand::UnreadCount => {
-                    let res = fm.get_items(&Filter::new().unread_item(), &Sorter::NONE);
-                    println!("{:?}", res.len());
                 }
                 QueryCommand::All => {
                     let res = fm.get_items(&Filter::new(), &Sorter::NONE);
