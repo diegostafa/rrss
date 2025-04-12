@@ -11,11 +11,16 @@ pub enum Commands {
     Dry,
     // DumpConfig,
     // DumpSources,
+    DumpOpml,
     Fetch,
     Clear,
     Query {
         #[command(subcommand)]
         query: QueryTarget,
+    },
+    MarkAsRead {
+        feed_url: String,
+        item_url: String,
     },
 }
 

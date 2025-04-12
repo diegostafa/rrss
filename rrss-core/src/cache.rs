@@ -6,7 +6,7 @@ use directories::ProjectDirs;
 use crate::globals::{CACHE_FILE, PROJECT_NAME};
 use crate::models::Feed;
 
-pub struct CachedFeeds {}
+pub struct CachedFeeds;
 impl CachedFeeds {
     pub fn init() {
         let proj = ProjectDirs::from("", "", PROJECT_NAME).unwrap();
@@ -16,7 +16,6 @@ impl CachedFeeds {
             let _ = fs::File::create(path).unwrap();
         }
     }
-
     pub fn save(feeds: &[Feed]) -> Result<(), std::io::Error> {
         let path = ProjectDirs::from("", "", PROJECT_NAME)
             .unwrap()
@@ -28,7 +27,7 @@ impl CachedFeeds {
             .truncate(false)
             .open(path)?;
 
-        file.write_all(&bincode::serialize(feeds).unwrap())?;
+        file.write_all(&bincode::serde::encode_to_vec(feeds, bincode::config::legacy()).unwrap())?;
         Ok(())
     }
     pub fn load() -> Result<Vec<Feed>, std::io::Error> {
@@ -44,8 +43,9 @@ impl CachedFeeds {
                 if data.is_empty() {
                     return Ok(Vec::new());
                 }
-                let data = bincode::deserialize(&data).unwrap();
-                Ok(data)
+                let data =
+                    bincode::serde::decode_from_slice(&data, bincode::config::legacy()).unwrap();
+                Ok(data.0)
             }
             Err(e) => panic!("{e}"),
         }

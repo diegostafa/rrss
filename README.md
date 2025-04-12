@@ -29,10 +29,8 @@ max_items = 100
 ```
 
 todos
-
+- improve info views
 - fix html2text rendering
-- hard updates (replace existing items)
-- global item search in all feeds
-- export as opml
-- bookmarking
-- define a grammar for queries so that it can be used in the tui too
+- show memory footprint (ram, disk)
+- show new items since last refresh
+- global item search

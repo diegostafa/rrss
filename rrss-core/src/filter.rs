@@ -77,7 +77,7 @@ impl FilterTest<Feed> for Filter {
         if let Some(id) = &self.feed_id {
             test = test && e.id() == id;
         }
-        if let Some(_) = &self.unread_feed {
+        if self.unread_feed.is_some() {
             test = test && e.tot_unread() > 0;
         }
         if let Some(p) = &self.feed_contains {
@@ -93,10 +93,10 @@ impl FilterTest<Item> for Filter {
             test = test && e.data.id == *id;
         }
         if let Some(true) = self.unread_item {
-            test = test && !e.state.is_read;
+            test = test && e.state.read_on.is_none();
         }
         if let Some(false) = self.unread_item {
-            test = test && e.state.is_read;
+            test = test && e.state.read_on.is_some();
         }
         if let Some(p) = &self.item_contains {
             if let Some(title) = &e.data.title {
@@ -107,7 +107,7 @@ impl FilterTest<Item> for Filter {
                 test = false;
             }
         }
-        if let Some(_) = self.unfiltered {
+        if self.unfiltered.is_some() {
             test = test && !e.state.is_filtered;
         }
         test

@@ -46,6 +46,9 @@ impl Feed {
         self.refresh_items_state();
         self.refresh_feed_state();
     }
+    pub fn update_bytes(&mut self, bytes: usize) {
+        self.state.exchanged_bytes += bytes;
+    }
     pub fn url(&self) -> String {
         self.conf.url.0.to_string()
     }
@@ -72,7 +75,7 @@ impl Feed {
     pub fn refresh_feed_state(&mut self) {
         if let Some(feed) = &self.data {
             self.state.latest_item_date = feed.items.iter().map(|i| i.data.posted).max().flatten();
-            self.state.is_recent = self.state.latest_item_date.map_or(false, |date| {
+            self.state.is_recent = self.state.latest_item_date.is_some_and(|date| {
                 (Utc::now() - date).num_days() < CONFIG.relative_time_threshold as i64
             })
         }
@@ -81,13 +84,14 @@ impl Feed {
         if self.conf.filter.is_none() {
             return false;
         }
-        self.items().map_or(false, |i| {
-            i.iter().any(|i| !i.state.is_read && !i.state.is_filtered)
+        self.items().is_some_and(|i| {
+            i.iter()
+                .any(|i| i.state.read_on.is_none() && !i.state.is_filtered)
         })
     }
     pub fn tot_unread(&self) -> usize {
         self.items()
-            .map(|i| i.iter().filter(|i| !i.state.is_read).count())
+            .map(|i| i.iter().filter(|i| i.state.read_on.is_none()).count())
             .unwrap_or_default()
     }
     pub fn name(&self) -> String {
@@ -198,6 +202,7 @@ pub struct FeedState {
     pub latest_item_date: Option<DateTime<Utc>>,
     pub hits: usize,
     pub is_recent: bool,
+    pub exchanged_bytes: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -224,7 +229,7 @@ impl FeedData {
                 .map(|i| Item {
                     data: ItemData::from(i, url),
                     state: ItemState {
-                        is_read: false,
+                        read_on: None,
                         is_filtered: false,
                     },
                 })
@@ -275,7 +280,7 @@ impl Tabular for Item {
     type Value = ItemId;
     fn cmp_by_col(&self, other: &Self, col: usize) -> Ordering {
         match col {
-            0 => self.state.is_read.cmp(&false),
+            0 => Item::BY_READ_ON.sort(self, other),
             1 => Item::BY_TITLE.sort(self, other),
             2 => Item::BY_POSTED.sort(self, other),
             _ => panic!(),
@@ -286,9 +291,9 @@ impl Tabular for Item {
         self.data.id.clone()
     }
     fn content(&self) -> Vec<String> {
-        let marker = match self.state.is_read {
-            true => CONFIG.theme.read_marker,
-            _ => CONFIG.theme.unread_marker,
+        let marker = match self.state.read_on {
+            None => CONFIG.theme.unread_marker,
+            _ => CONFIG.theme.read_marker,
         };
         vec![
             format!("{}", marker),
@@ -304,7 +309,7 @@ impl Tabular for Item {
     }
     fn style(&self) -> Style {
         let mut style = Style::default();
-        if !self.state.is_read {
+        if self.state.read_on.is_none() {
             style = style
                 .fg(CONFIG.theme.fg_unread_color)
                 .bg(CONFIG.theme.bg_unread_color);
@@ -320,7 +325,7 @@ impl Tabular for Item {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ItemState {
-    pub is_read: bool,
+    pub read_on: Option<DateTime<Utc>>,
     pub is_filtered: bool,
 }
 

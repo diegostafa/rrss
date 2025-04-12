@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::str::FromStr;
 
 use itertools::Itertools;
+use opml::OPML;
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 
@@ -198,6 +199,24 @@ impl Sources {
                 feed
             })
             .collect()
+    }
+}
+impl From<OPML> for Sources {
+    fn from(value: OPML) -> Self {
+        Sources {
+            sources: value
+                .body
+                .outlines
+                .into_iter()
+                .map(|item| FeedSource {
+                    url: FeedId(item.url.unwrap()),
+                    tags: vec![item.category.unwrap()],
+                    manual_update: false,
+                    filter: None,
+                    max_items: 5000,
+                })
+                .collect(),
+        }
     }
 }
 impl From<PartialSources> for Sources {

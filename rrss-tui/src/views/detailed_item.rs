@@ -26,7 +26,7 @@ impl DetailedItemView<'_> {
             items,
             item_idx: curr_idx,
             title: StyledWidget::header_paragraph("".to_string()),
-            content: ScrollableParagraph::new("".to_string()),
+            content: ScrollableParagraph::new(""),
             layout: Layout::default()
                 .direction(Direction::Vertical)
                 .constraints(vec![Constraint::Length(1), Constraint::Fill(1)]),

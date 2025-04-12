@@ -186,7 +186,7 @@ impl App {
                 TableState::new().with_selected(0),
             ))),
             AppRequest::OpenItemsView(feed_id, sorter) => {
-                self.fm.increment_feed_hits(&feed_id);
+                let _ = self.fm.increment_feed_hits(&feed_id);
                 self.vc.push(Box::new(ItemsView::new(
                     &self.fm,
                     Filter::new().feed_id(feed_id),
@@ -203,7 +203,7 @@ impl App {
             AppRequest::OpenDetailedItemView(filter, sorter, idx) => {
                 let items = self.fm.get_items(&filter, &sorter);
                 let item = items.get(idx).unwrap();
-                self.fm.mark_item_as_read(item.data.id.clone());
+                let _ = self.fm.mark_item_as_read(item.data.id.clone());
                 let view = DetailedItemView::new(items, idx);
                 self.vc.push(Box::new(view));
             }
@@ -215,8 +215,10 @@ impl App {
 
             AppRequest::OpenInfoFeedView(feed_id) => {
                 if let Some(f) = self.fm.get_feed(feed_id) {
+                    // todo: display things nicely
                     self.handle_request(AppRequest::OpenPopupView(format!(
-                        "{:?}\n{:?}",
+                        "bytes: {}\nconf: {:?}\ndata: {:?}",
+                        f.state.exchanged_bytes,
                         f.conf,
                         f.data.as_ref().map(|d| &d.links)
                     )));
@@ -224,12 +226,12 @@ impl App {
             }
             AppRequest::OpenInfoItemView(item_id) => {
                 if let Some(i) = self.fm.get_item(item_id) {
+                    // todo: display things nicely
                     self.handle_request(AppRequest::OpenPopupView(format!(
-                        "id: {:?}\ntitle: {}\nfiltered: {}\nread: {}",
+                        "id: {:?}\ntitle: {}\nfiltered: {}",
                         i.data.id,
                         i.data.title.clone().unwrap(),
                         i.state.is_filtered,
-                        i.state.is_read,
                     )));
                 }
             }
@@ -244,7 +246,7 @@ impl App {
                     let status = self.vc.status().clone();
                     move || status.lock().unwrap().remove(id)
                 };
-                let _ = self.fm.update_feeds(&filter, finally);
+                drop(self.fm.update_feeds(&filter, finally))
             }
             AppRequest::UpdateFeed(feed_id) => {
                 if let TaskStatus::Running = self.fm.poll_update_feed() {
@@ -260,11 +262,11 @@ impl App {
                 let _ = self.fm.update_feed(feed_id, finally);
             }
             AppRequest::MarkItemAsRead(item_id) => {
-                self.fm.mark_item_as_read(item_id);
+                let _ = self.fm.mark_item_as_read(item_id);
                 self.handle_request(AppRequest::RefreshView);
             }
             AppRequest::MarkFeedAsRead(feed_id) => {
-                self.fm.mark_feed_as_read(feed_id);
+                let _ = self.fm.mark_feed_as_read(feed_id);
                 self.handle_request(AppRequest::RefreshView);
             }
             AppRequest::OpenItem(item_id) => {

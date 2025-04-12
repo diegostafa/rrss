@@ -124,12 +124,6 @@ impl View for FeedsView<'_> {
                         {
                             return AppRequest::OpenItemsView(id.clone(), Item::BY_POSTED_REV);
                         }
-                        if let Some(col) = self.table.screen_coords_to_col_index(pos)
-                            && let Some(idx) = self.table.selected_col()
-                            && col == idx
-                        {
-                            // sort table by col
-                        }
                     }
                     _ => {}
                 }

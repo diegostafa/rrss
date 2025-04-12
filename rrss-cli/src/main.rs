@@ -5,6 +5,7 @@ use clap::Parser;
 use cli::{Cli, Commands, QueryCommand, QueryTarget};
 use rrss_core::feed_manager::{FeedManager, TaskStatus};
 use rrss_core::filter::Filter;
+use rrss_core::models::ItemId;
 use rrss_core::sorter::Sorter;
 
 mod cli;
@@ -97,6 +98,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             },
         },
+        Commands::MarkAsRead { feed_url, item_url } => {
+            match fm.mark_item_as_read(ItemId(feed_url, item_url)) {
+                Some(save_handle) => save_handle.join().expect("failed to save feeds"),
+                None => println!("item not found"),
+            }
+        }
+        Commands::DumpOpml => {
+            let opml = fm.as_opml();
+            println!("{}", opml.to_string().unwrap());
+        }
     };
 
     Ok(())

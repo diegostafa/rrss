@@ -3,9 +3,11 @@ use std::sync::{Arc, Mutex};
 use async_semaphore::Semaphore;
 use async_std::channel::{Receiver, TryRecvError};
 use async_std::task::JoinHandle;
+use chrono::Utc;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use itertools::{Either, Itertools};
+use opml::OPML;
 use ratatui_helpers::config::parse_toml;
 
 use crate::cache::CachedFeeds;
@@ -15,8 +17,9 @@ use crate::globals::{CONFIG, PROJECT_NAME, SOURCES_FILE};
 use crate::models::{Feed, FeedData, FeedId, Item, ItemId, Link, Tag};
 use crate::sorter::Sorter;
 
-pub type RequestError = Box<dyn std::error::Error + Send + Sync>;
-pub type FetchResult = Result<(FeedId, FeedData), RequestError>;
+type RequestError = Box<dyn std::error::Error + Send + Sync>;
+type FetchData = (FeedId, FeedData, usize);
+type FetchResult = Result<FetchData, RequestError>;
 
 pub enum TaskStatus<T> {
     None,
@@ -32,12 +35,13 @@ pub struct FeedManager {
     update_feed_ch: Option<Receiver<FetchResult>>,
 }
 impl FeedManager {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         CachedFeeds::init();
-        let feeds = CachedFeeds::load().expect("[error] failed to load feeds");
+        let cached = CachedFeeds::load().unwrap();
         let sources = parse_toml::<PartialSources, Sources>(PROJECT_NAME, SOURCES_FILE);
         let fm = Self {
-            feeds: sources.to_feeds(feeds),
+            feeds: sources.to_feeds(cached),
             save_mutex: Arc::new(Mutex::new(())),
             update_feeds_ch: None,
             update_feed_ch: None,
@@ -122,10 +126,11 @@ impl FeedManager {
                     self.update_feed_ch = None;
                     TaskStatus::Error(e.to_string())
                 }
-                Ok(Ok((id, data))) => {
+                Ok(Ok((id, data, bytes))) => {
                     self.update_feed_ch = None;
                     if let Some(old_feed) = self.get_feed_mut(id) {
                         old_feed.merge_feed(data);
+                        old_feed.update_bytes(bytes);
                         let _ = self.save();
                     }
                     TaskStatus::Done(())
@@ -133,30 +138,33 @@ impl FeedManager {
             },
         }
     }
-    pub fn merge_new_feeds(&mut self, new_feeds: Vec<(FeedId, FeedData)>) {
+    pub fn merge_new_feeds(&mut self, new_feeds: Vec<FetchData>) {
         for new in new_feeds {
             if let Some(feed) = self.get_feed_mut(new.0) {
                 feed.merge_feed(new.1)
             }
         }
     }
-    pub fn mark_item_as_read(&mut self, id: ItemId) {
+    pub fn mark_item_as_read(&mut self, id: ItemId) -> Option<std::thread::JoinHandle<()>> {
         if let Some(i) = self.get_item_mut(id) {
-            i.state.is_read = true;
-            let _ = self.save();
+            i.state.read_on = Some(Utc::now());
+            return Some(self.save());
         }
+        None
     }
-    pub fn mark_feed_as_read(&mut self, id: FeedId) {
+    pub fn mark_feed_as_read(&mut self, id: FeedId) -> std::thread::JoinHandle<()> {
+        let now = Utc::now();
         self.items_mut(&Filter::new().feed_id(id))
             .iter_mut()
-            .for_each(|i| i.state.is_read = true);
-        let _ = self.save();
+            .for_each(|i| i.state.read_on = Some(now));
+        self.save()
     }
-    pub fn increment_feed_hits(&mut self, id: &FeedId) {
+    pub fn increment_feed_hits(&mut self, id: &FeedId) -> Option<std::thread::JoinHandle<()>> {
         if let Some(feed) = self.get_feed_mut(id.clone()) {
             feed.increment_hits();
-            let _ = self.save();
+            return Some(self.save());
         }
+        None
     }
     pub fn get_tags(&self, filter: &Filter, sorter: &Sorter<Tag>) -> Vec<Tag> {
         self.feeds(&Filter::new())
@@ -209,6 +217,13 @@ impl FeedManager {
             .into_iter()
             .next()
     }
+    pub fn as_opml(&self) -> OPML {
+        let mut opml = OPML::default();
+        for feed in &self.feeds {
+            opml.add_feed(&feed.name(), &feed.url());
+        }
+        opml
+    }
 
     fn items(&self, filter: &Filter) -> Vec<&Item> {
         self.feeds
@@ -244,7 +259,7 @@ impl FeedManager {
     }
 
     async fn fetch_feed(url: String) -> FetchResult {
-        async_std::task::spawn_blocking(move || Self::_fetch_feed(&url)).await
+        async_std::task::spawn_blocking(move || fetch(&url)).await
     }
     async fn fetch_feeds(urls: Vec<String>) -> Vec<FetchResult> {
         let semaphore = Arc::new(Semaphore::new(CONFIG.max_concurrency));
@@ -254,17 +269,19 @@ impl FeedManager {
                 let semaphore = semaphore.clone();
                 async move {
                     let _guard = semaphore.acquire().await;
-                    async_std::task::spawn_blocking(move || Self::_fetch_feed(&url)).await
+                    async_std::task::spawn_blocking(move || fetch(&url)).await
                 }
             });
             futures.push(future);
         }
         futures.collect().await
     }
-    fn _fetch_feed(url: &str) -> FetchResult {
-        // todo: use async http client
-        let data = ureq::get(url).call()?.into_string()?;
-        let data = feed_rs::parser::parse(data.as_bytes()).map(|d| FeedData::from(d, url))?;
-        Ok((FeedId(url.to_string()), data))
-    }
+}
+
+fn fetch(url: &str) -> FetchResult {
+    let data = ureq::get(url).call()?.into_body().read_to_string()?;
+    let data = data.as_bytes();
+    let bytes = data.len();
+    let data = feed_rs::parser::parse(data).map(|d| FeedData::from(d, url))?;
+    Ok((FeedId(url.to_string()), data, bytes))
 }

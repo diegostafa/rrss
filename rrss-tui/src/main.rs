@@ -1,5 +1,7 @@
 #![feature(let_chains)]
 #![warn(unused_results)]
+#![allow(clippy::single_match)]
+#![allow(clippy::useless_format)]
 
 use app::App;
 use rrss_core::feed_manager::FeedManager;

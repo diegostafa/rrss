@@ -26,7 +26,7 @@ impl Feed {
         Sorter(|b, a| a.feed_type().to_string().cmp(&b.feed_type().to_string()));
 }
 impl Item {
-    pub const BY_IS_READ: Sorter<Self> = Sorter(|a, b| a.state.is_read.cmp(&b.state.is_read));
+    pub const BY_READ_ON: Sorter<Self> = Sorter(|a, b| a.state.read_on.cmp(&b.state.read_on));
     pub const BY_TITLE: Sorter<Self> = Sorter(|a, b| a.data.title.cmp(&b.data.title));
     pub const BY_POSTED: Sorter<Self> = Sorter(|a, b| a.data.posted.cmp(&b.data.posted));
     pub const BY_TITLE_REV: Sorter<Self> = Sorter(|b, a| a.data.title.cmp(&b.data.title));
