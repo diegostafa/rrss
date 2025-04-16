@@ -16,7 +16,7 @@ impl CachedFeeds {
             let _ = fs::File::create(path).unwrap();
         }
     }
-    pub fn save(feeds: &[Feed]) -> Result<(), std::io::Error> {
+    pub fn save(feeds: &[Feed]) -> Result<(), Box<dyn std::error::Error>> {
         let path = ProjectDirs::from("", "", PROJECT_NAME)
             .unwrap()
             .data_dir()
@@ -27,10 +27,13 @@ impl CachedFeeds {
             .truncate(false)
             .open(path)?;
 
-        file.write_all(&bincode::serde::encode_to_vec(feeds, bincode::config::legacy()).unwrap())?;
+        file.write_all(&bincode::serde::encode_to_vec(
+            feeds,
+            bincode::config::legacy(),
+        )?)?;
         Ok(())
     }
-    pub fn load() -> Result<Vec<Feed>, std::io::Error> {
+    pub fn load() -> Result<Vec<Feed>, Box<dyn std::error::Error>> {
         let path = ProjectDirs::from("", "", PROJECT_NAME)
             .unwrap()
             .data_dir()
@@ -43,8 +46,7 @@ impl CachedFeeds {
                 if data.is_empty() {
                     return Ok(Vec::new());
                 }
-                let data =
-                    bincode::serde::decode_from_slice(&data, bincode::config::legacy()).unwrap();
+                let data = bincode::serde::decode_from_slice(&data, bincode::config::legacy())?;
                 Ok(data.0)
             }
             Err(e) => panic!("{e}"),

@@ -21,3 +21,4 @@ ratatui-helpers = { git = "https://github.com/diegostafa/ratatui-helpers.git" }
 regex = "1.10.5"
 serde = { version = "1.0.199", features = ["derive"] }
 ureq = "3.0.10"
+notify-rust = "4.11.7"

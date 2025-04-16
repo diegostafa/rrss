@@ -29,6 +29,7 @@ max_items = 100
 ```
 
 todos
+- abort update after timeout
 - improve info views
 - fix html2text rendering
 - show memory footprint (ram, disk)

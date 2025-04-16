@@ -1,8 +1,12 @@
+use std::fmt::Display;
+
+use crossterm::event::{KeyEvent, KeyModifiers};
 use ratatui::crossterm::event::{Event, KeyCode};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::text::Line;
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
+use ratatui_helpers::keymap::{KeyMap, ShortCut};
 use ratatui_helpers::view::View;
 use rrss_core::feed_manager::FeedManager;
 use rrss_core::filter::Filter;
@@ -19,6 +23,7 @@ pub struct DetailedItemView<'a> {
     title: Paragraph<'a>,
     content: ScrollableParagraph<'a>,
     layout: Layout,
+    keymap: DetailedItemKeyMap,
 }
 impl DetailedItemView<'_> {
     pub fn new(items: Vec<Item>, curr_idx: usize) -> Self {
@@ -30,6 +35,7 @@ impl DetailedItemView<'_> {
             layout: Layout::default()
                 .direction(Direction::Vertical)
                 .constraints(vec![Constraint::Length(1), Constraint::Fill(1)]),
+            keymap: KeyMap::default(),
         };
         view.update_view();
         view
@@ -77,6 +83,7 @@ impl DetailedItemView<'_> {
         self.set_title();
     }
 }
+
 impl View for DetailedItemView<'_> {
     type Model = FeedManager;
     type Signal = AppRequest;
@@ -93,36 +100,40 @@ impl View for DetailedItemView<'_> {
     fn update(&mut self, ev: &Event) -> AppRequest {
         self.content.update(ev);
         match ev {
-            Event::Key(ev) => match ev.code {
-                KeyCode::Char('o') => {
-                    if let Some(link) = self.item().data.links.first()
-                        && let Err(e) = open::that_detached(&link.0.href)
-                    {
-                        return AppRequest::OpenPopupView(e.to_string());
+            Event::Key(ev) => {
+                if let Some(cmd) = self.keymap.get_command(ev) {
+                    match cmd {
+                        DetailedItemCommand::OpenItem => {
+                            if let Some(link) = self.item().data.links.first()
+                                && let Err(e) = open::that_detached(&link.0.href)
+                            {
+                                return AppRequest::OpenPopupView(e.to_string());
+                            }
+                        }
+                        DetailedItemCommand::OpenLinks => {
+                            return AppRequest::OpenLinksView(
+                                Filter::new().item_id(self.item().data.id.clone()),
+                            )
+                        }
+                        DetailedItemCommand::OpenItemInfo => {
+                            return AppRequest::OpenPopupView(format!(
+                                "TITLE: {}\nDATE: {}",
+                                self.item().data.title.clone().unwrap_or_default(),
+                                self.item().data.posted.unwrap_or_default(),
+                            ))
+                        }
+                        DetailedItemCommand::PrevItem => {
+                            self.item_idx = self.item_idx.saturating_sub(1).max(0);
+                            return AppRequest::RefreshView;
+                        }
+                        DetailedItemCommand::NextItem => {
+                            self.item_idx = (self.item_idx + 1).min(self.items.len() - 1);
+                            return AppRequest::RefreshView;
+                        }
                     }
                 }
-                KeyCode::Char('l') => {
-                    return AppRequest::OpenLinksView(
-                        Filter::new().item_id(self.item().data.id.clone()),
-                    )
-                }
-                KeyCode::Char('K') | KeyCode::Left => {
-                    self.item_idx = self.item_idx.saturating_sub(1).max(0);
-                    return AppRequest::RefreshView;
-                }
-                KeyCode::Char('J') | KeyCode::Right => {
-                    self.item_idx = (self.item_idx + 1).min(self.items.len() - 1);
-                    return AppRequest::RefreshView;
-                }
-                KeyCode::Char('i') => {
-                    return AppRequest::OpenPopupView(format!(
-                        "TITLE: {}\nDATE: {}",
-                        self.item().data.title.clone().unwrap_or_default(),
-                        self.item().data.posted.unwrap_or_default(),
-                    ))
-                }
-                _ => {}
-            },
+            }
+
             _ => {}
         }
         AppRequest::None
@@ -131,5 +142,56 @@ impl View for DetailedItemView<'_> {
         let layout = self.layout.split(area);
         f.render_widget(&self.title, layout[0]);
         self.content.draw(f, layout[1]);
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum DetailedItemCommand {
+    OpenItem,
+    OpenLinks,
+    OpenItemInfo,
+    NextItem,
+    PrevItem,
+}
+impl Display for DetailedItemCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+pub struct DetailedItemKeyMap(pub Vec<ShortCut<DetailedItemCommand>>);
+impl KeyMap for DetailedItemKeyMap {
+    type Command = DetailedItemCommand;
+    fn get_shortcuts(&self) -> &[ShortCut<Self::Command>] {
+        &self.0
+    }
+    fn default() -> Self {
+        Self(Vec::from([
+            ShortCut(
+                DetailedItemCommand::OpenItem,
+                vec![KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE)],
+            ),
+            ShortCut(
+                DetailedItemCommand::OpenLinks,
+                vec![KeyEvent::new(KeyCode::Char('l'), KeyModifiers::NONE)],
+            ),
+            ShortCut(
+                DetailedItemCommand::OpenItemInfo,
+                vec![KeyEvent::new(KeyCode::Char('i'), KeyModifiers::NONE)],
+            ),
+            ShortCut(
+                DetailedItemCommand::NextItem,
+                vec![
+                    KeyEvent::new(KeyCode::Char('J'), KeyModifiers::NONE),
+                    KeyEvent::new(KeyCode::Right, KeyModifiers::NONE),
+                ],
+            ),
+            ShortCut(
+                DetailedItemCommand::PrevItem,
+                vec![
+                    KeyEvent::new(KeyCode::Char('K'), KeyModifiers::NONE),
+                    KeyEvent::new(KeyCode::Left, KeyModifiers::NONE),
+                ],
+            ),
+        ]))
     }
 }

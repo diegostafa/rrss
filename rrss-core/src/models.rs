@@ -5,6 +5,7 @@ use std::hash::Hash;
 use chrono::{DateTime, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
 use itertools::Itertools;
+use notify_rust::Notification;
 use ratatui::layout::{Alignment, Constraint};
 use ratatui::style::Style;
 use ratatui_helpers::stateful_table::Tabular;
@@ -34,14 +35,28 @@ impl Feed {
         }
     }
     pub fn merge_feed(&mut self, mut new: FeedData) {
+        let name = self.name();
         match &mut self.data {
             Some(old) => {
+                new.items.sort_by(Item::BY_POSTED_REV.0);
+                new.items.truncate(self.conf.max_items as usize);
                 new.items.retain(|i| !old.items.contains(i));
+
+                if self.conf.notify && !new.items.is_empty() {
+                    notify_new_items(name, &new.items);
+                }
+
                 old.items.extend(new.items);
                 old.items.sort_by(Item::BY_POSTED_REV.0);
                 old.items.truncate(self.conf.max_items as usize);
             }
-            _ => self.data = Some(new),
+            _ => {
+                new.items.truncate(self.conf.max_items as usize);
+                if self.conf.notify && !new.items.is_empty() {
+                    notify_new_items(name, &new.items);
+                }
+                self.data = Some(new)
+            }
         };
         self.refresh_items_state();
         self.refresh_feed_state();
@@ -447,4 +462,16 @@ fn html_to_text(html: &str) -> String {
         .unwrap()
         .trim()
         .to_string()
+}
+
+fn notify_new_items(feed_name: String, items: &[Item]) {
+    let _ = Notification::new()
+        .summary(&format!("{feed_name} has new items"))
+        .body(
+            &items
+                .iter()
+                .map(|i| i.data.title.clone().unwrap_or_else(|| i.data.id.1.clone()))
+                .join("\n"),
+        )
+        .show();
 }

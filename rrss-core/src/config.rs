@@ -142,6 +142,7 @@ struct PartialFeedSource {
     url: Option<FeedId>,
     tags: Vec<String>,
     manual_update: Option<bool>,
+    notify: Option<bool>,
     filter: Option<PartialFeedFilter>,
     max_items: Option<u32>,
 }
@@ -151,6 +152,7 @@ pub struct FeedSource {
     pub url: FeedId,
     pub tags: Vec<String>,
     pub manual_update: bool,
+    pub notify: bool,
     pub filter: Option<FeedFilter>,
     pub max_items: u32,
 }
@@ -160,6 +162,7 @@ impl From<PartialFeedSource> for FeedSource {
             url: value.url.expect("url is required"),
             tags: value.tags,
             manual_update: value.manual_update.unwrap_or(false),
+            notify: value.notify.unwrap_or(false),
             filter: value.filter.map(FeedFilter::from),
             max_items: value.max_items.unwrap_or(5000),
         }
@@ -212,6 +215,7 @@ impl From<OPML> for Sources {
                     url: FeedId(item.url.unwrap()),
                     tags: vec![item.category.unwrap()],
                     manual_update: false,
+                    notify: false,
                     filter: None,
                     max_items: 5000,
                 })

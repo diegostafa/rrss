@@ -63,11 +63,12 @@ impl FeedManager {
             let url = feed.url();
             let (sx, rx) = async_std::channel::bounded(1);
             self.update_feed_ch = Some(rx);
-            return Some(async_std::task::spawn(async move {
+            let fetch_task = async_std::task::spawn(async move {
                 let res = Self::fetch_feed(url).await;
                 sx.send(res).await.unwrap();
                 finally();
-            }));
+            });
+            return Some(fetch_task);
         }
         None
     }
@@ -259,7 +260,7 @@ impl FeedManager {
     }
 
     async fn fetch_feed(url: String) -> FetchResult {
-        async_std::task::spawn_blocking(move || fetch(&url)).await
+        async_std::task::spawn_blocking(move || fetch_feed_impl(&url)).await
     }
     async fn fetch_feeds(urls: Vec<String>) -> Vec<FetchResult> {
         let semaphore = Arc::new(Semaphore::new(CONFIG.max_concurrency));
@@ -269,7 +270,7 @@ impl FeedManager {
                 let semaphore = semaphore.clone();
                 async move {
                     let _guard = semaphore.acquire().await;
-                    async_std::task::spawn_blocking(move || fetch(&url)).await
+                    Self::fetch_feed(url).await
                 }
             });
             futures.push(future);
@@ -278,7 +279,7 @@ impl FeedManager {
     }
 }
 
-fn fetch(url: &str) -> FetchResult {
+fn fetch_feed_impl(url: &str) -> FetchResult {
     let data = ureq::get(url).call()?.into_body().read_to_string()?;
     let data = data.as_bytes();
     let bytes = data.len();
