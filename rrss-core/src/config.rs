@@ -6,7 +6,7 @@ use opml::OPML;
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 
-use crate::models::{Feed, FeedId};
+use crate::models::{Feed, FeedId, FeedState};
 
 #[derive(Deserialize, Default)]
 pub struct PartialTheme {
@@ -188,19 +188,28 @@ pub struct Sources {
     sources: Vec<FeedSource>,
 }
 impl Sources {
-    pub fn to_feeds(self, feeds: Vec<Feed>) -> Vec<Feed> {
+    pub fn to_feeds(self, mut feeds: Vec<Feed>) -> Vec<Feed> {
         self.sources
             .into_iter()
-            .map(|source| {
-                let feed = feeds.iter().find(|f| *f.id() == source.url);
-                let mut feed = Feed {
-                    conf: source.clone(),
-                    data: feed.map(|f| f.data.clone()).unwrap_or_default(),
-                    state: feed.map(|f| f.state.clone()).unwrap_or_default(),
-                };
-                feed.refresh_items_state();
-                feed
-            })
+            .map(
+                |source| match feeds.iter().position(|f| *f.id() == source.url) {
+                    Some(idx) => {
+                        let feed = feeds.swap_remove(idx);
+                        let mut feed = Feed {
+                            conf: source,
+                            data: feed.data,
+                            state: feed.state,
+                        };
+                        feed.refresh_items_state();
+                        feed
+                    }
+                    _ => Feed {
+                        conf: source,
+                        data: None,
+                        state: FeedState::default(),
+                    },
+                },
+            )
             .collect()
     }
 }

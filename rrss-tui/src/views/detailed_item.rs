@@ -44,42 +44,51 @@ impl DetailedItemView<'_> {
         self.items.get(self.item_idx).unwrap()
     }
     fn update_view(&mut self) {
-        let item = self.item().clone();
+        let mut item = self.item().clone();
+        let title = std::mem::take(&mut item.data.title);
+
         self.title = StyledWidget::header_paragraph(format!(
             "({}/{}) - {}",
             self.item_idx + 1,
             self.items.len(),
-            item.data.title.clone().unwrap_or_default()
+            title.clone().unwrap_or_default()
         ));
 
-        let mut lines = vec![];
-        if let Some(title) = item.data.title {
-            lines.push(Line::from(format!("Title: {}", title)));
+        let mut metadata = vec![];
+        if let Some(title) = title {
+            let line = Line::from(format!("Title: {}", title));
+            metadata.push(line);
         }
         if let Some(date) = item.data.posted {
-            lines.push(Line::from(format!(
-                "Posted: {}",
-                date.format(CONFIG.theme.date_format.as_str())
-            )));
+            let date = date.format(CONFIG.theme.date_format.as_str());
+            let line = Line::from(format!("Posted: {date}"));
+            metadata.push(line);
         }
-        if !lines.is_empty() {
-            lines.push(Line::from(""));
+        if !metadata.is_empty() {
+            let line = Line::from("");
+            metadata.push(line);
         }
 
-        lines.push(Line::from(
-            item.data
-                .content
-                .or(item.data.summary)
-                .or(item
-                    .data
+        let content = item
+            .data
+            .content
+            .or(item.data.summary)
+            .or_else(|| {
+                item.data
                     .media
                     .first()
                     .and_then(|c| c.0.description.as_ref())
-                    .map(|a| a.content.clone()))
-                .unwrap_or_default(),
-        ));
+                    .map(|a| a.content.clone())
+            })
+            .unwrap_or_default();
 
-        self.content = ScrollableParagraph::new(lines);
+        let lines = content
+            .lines()
+            .map(|l| Line::from(l.to_string()))
+            .collect::<Vec<Line>>();
+        metadata.extend(lines);
+
+        self.content = ScrollableParagraph::new(metadata);
         self.set_title();
     }
 }

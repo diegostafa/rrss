@@ -54,7 +54,6 @@ impl<'a> ScrollableParagraph<'a> {
                     }
                 }
             }
-
             Event::Mouse(ev) => {
                 let pos = Position {
                     x: ev.column,
@@ -79,7 +78,7 @@ impl<'a> ScrollableParagraph<'a> {
     }
 
     fn scroll_paragraph(&mut self) {
-        self.paragraph = self.paragraph.clone().scroll((self.scroll, 0));
+        self.paragraph = std::mem::take(&mut self.paragraph).scroll((self.scroll, 0));
     }
     fn max_scroll(&self) -> u16 {
         self.paragraph.line_count(self.area.width).saturating_sub(1) as u16

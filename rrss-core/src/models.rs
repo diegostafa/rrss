@@ -35,7 +35,7 @@ impl Feed {
         }
     }
     pub fn merge_feed(&mut self, mut new: FeedData) {
-        let name = self.name();
+        let name = &self.name();
         match &mut self.data {
             Some(old) => {
                 new.items.sort_by(Item::BY_POSTED_REV.0);
@@ -359,12 +359,8 @@ impl ItemData {
         Self {
             id: ItemId(feed_url.to_string(), item.id),
             title: item.title.map(|t| t.content),
-            content: item
-                .content
-                .and_then(|s| s.body)
-                .as_deref()
-                .map(html_to_text),
-            summary: item.summary.map(|s| html_to_text(&s.content)),
+            content: item.content.and_then(|s| s.body).map(html_to_text),
+            summary: item.summary.map(|s| html_to_text(s.content)),
             posted: item.published.or(item.updated),
             links: item.links.into_iter().map(Link).collect(),
             media: item.media.into_iter().map(MediaObject).collect(),
@@ -454,7 +450,7 @@ fn pretty_date(date: DateTime<Utc>) -> String {
     }
 }
 
-fn html_to_text(html: &str) -> String {
+fn html_to_text(html: String) -> String {
     html2text::config::plain()
         .raw_mode(true)
         .no_table_borders()
@@ -464,9 +460,9 @@ fn html_to_text(html: &str) -> String {
         .to_string()
 }
 
-fn notify_new_items(feed_name: String, items: &[Item]) {
+fn notify_new_items(summary: &str, items: &[Item]) {
     let _ = Notification::new()
-        .summary(&format!("{feed_name} has new items"))
+        .summary(summary)
         .body(
             &items
                 .iter()
