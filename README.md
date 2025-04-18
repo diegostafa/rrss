@@ -31,5 +31,5 @@ max_items = 100
 todos
 - abort update after timeout
 - improve info views
-- show memory footprint (ram, disk)
+- improve term titles
 - global item search

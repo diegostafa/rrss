@@ -44,51 +44,30 @@ impl DetailedItemView<'_> {
         self.items.get(self.item_idx).unwrap()
     }
     fn update_view(&mut self) {
-        let mut item = self.item().clone();
-        let title = std::mem::take(&mut item.data.title);
+        let item = self.item().clone();
+        let mut sections = vec![];
 
         self.title = StyledWidget::header_paragraph(format!(
             "({}/{}) - {}",
             self.item_idx + 1,
             self.items.len(),
-            title.clone().unwrap_or_default()
+            item.data.title.clone().unwrap_or_default()
         ));
-
-        let mut metadata = vec![];
-        if let Some(title) = title {
-            let line = Line::from(format!("Title: {}", title));
-            metadata.push(line);
+        if let Some(title) = item.data.title {
+            sections.push(format!("Title: {}", title));
         }
         if let Some(date) = item.data.posted {
             let date = date.format(CONFIG.theme.date_format.as_str());
-            let line = Line::from(format!("Posted: {date}"));
-            metadata.push(line);
+            sections.push(format!("Posted: {}", date));
         }
-        if !metadata.is_empty() {
-            let line = Line::from("");
-            metadata.push(line);
+        if !sections.is_empty() {
+            sections.push("".into());
         }
-
-        let content = item
-            .data
-            .content
-            .or(item.data.summary)
-            .or_else(|| {
-                item.data
-                    .media
-                    .first()
-                    .and_then(|c| c.0.description.as_ref())
-                    .map(|a| a.content.clone())
-            })
-            .unwrap_or_default();
-
-        let lines = content
-            .lines()
-            .map(|l| Line::from(l.to_string()))
-            .collect::<Vec<Line>>();
-        metadata.extend(lines);
-
-        self.content = ScrollableParagraph::new(metadata);
+        if let Some(content) = item.data.content.or(item.data.summary) {
+            sections.extend(content.lines().map(|s| s.to_string()).collect::<Vec<_>>());
+        }
+        let sections = sections.into_iter().map(Line::from).collect::<Vec<_>>();
+        self.content = ScrollableParagraph::new(sections);
         self.set_title();
     }
 }
@@ -101,7 +80,7 @@ impl View for DetailedItemView<'_> {
         ViewKind::DetailedItem
     }
     fn title(&self) -> String {
-        format!("{}", self.item().data.title.clone().unwrap_or_default())
+        self.item().data.title.clone().unwrap_or_default()
     }
     fn refresh(&mut self, _fm: &FeedManager) {
         self.update_view();

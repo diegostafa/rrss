@@ -38,19 +38,22 @@ impl Feed {
         let name = &self.name();
         match &mut self.data {
             Some(old) => {
+                let old_items = std::mem::take(&mut old.items);
+                new.items.retain(|i| !old_items.contains(i));
                 new.items.sort_by(Item::BY_POSTED_REV.0);
                 new.items.truncate(self.conf.max_items as usize);
-                new.items.retain(|i| !old.items.contains(i));
 
                 if self.conf.notify && !new.items.is_empty() {
                     notify_new_items(name, &new.items);
                 }
 
-                old.items.extend(new.items);
-                old.items.sort_by(Item::BY_POSTED_REV.0);
-                old.items.truncate(self.conf.max_items as usize);
+                new.items.extend(old_items);
+                new.items.sort_by(Item::BY_POSTED_REV.0);
+                new.items.truncate(self.conf.max_items as usize);
+                old.items = new.items;
             }
             _ => {
+                new.items.sort_by(Item::BY_POSTED_REV.0);
                 new.items.truncate(self.conf.max_items as usize);
                 if self.conf.notify && !new.items.is_empty() {
                     notify_new_items(name, &new.items);
