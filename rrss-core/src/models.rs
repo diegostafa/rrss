@@ -17,7 +17,11 @@ use crate::globals::CONFIG;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FeedId(pub String);
-
+impl From<String> for FeedId {
+    fn from(s: String) -> Self {
+        FeedId(s)
+    }
+}
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Feed {
     pub conf: FeedSource,
@@ -67,11 +71,11 @@ impl Feed {
     pub fn update_bytes(&mut self, bytes: usize) {
         self.state.exchanged_bytes += bytes;
     }
-    pub fn url(&self) -> String {
-        self.conf.url.0.to_string()
+    pub fn urls(&self) -> Vec<String> {
+        self.conf.urls.clone()
     }
     pub fn id(&self) -> &FeedId {
-        &self.conf.url
+        &self.conf.id
     }
     pub fn feed_type(&self) -> FeedType {
         self.data
@@ -237,7 +241,7 @@ pub struct FeedData {
     pub language: Option<String>,
 }
 impl FeedData {
-    pub fn from(feed: feed_rs::model::Feed, url: &str) -> Self {
+    pub fn from(feed: feed_rs::model::Feed, id: &FeedId) -> Self {
         Self {
             feed_type: FeedType(Some(feed.feed_type)),
             title: feed.title.map(|t| t.content).unwrap_or_default(),
@@ -245,7 +249,7 @@ impl FeedData {
                 .entries
                 .into_iter()
                 .map(|i| Item {
-                    data: ItemData::from(i, url),
+                    data: ItemData::from(i, id),
                     state: ItemState {
                         read_on: None,
                         is_filtered: false,
@@ -358,9 +362,9 @@ pub struct ItemData {
     pub links: Vec<Link>,
 }
 impl ItemData {
-    fn from(item: feed_rs::model::Entry, feed_url: &str) -> Self {
+    fn from(item: feed_rs::model::Entry, id: &FeedId) -> Self {
         Self {
-            id: ItemId(feed_url.to_string(), item.id),
+            id: ItemId(id.0.to_string(), item.id),
             title: item.title.map(|t| t.content),
             content: item.content.and_then(|s| s.body).map(html_to_text),
             summary: item.summary.map(|s| html_to_text(s.content)),

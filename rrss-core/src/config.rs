@@ -139,7 +139,8 @@ impl From<PartialFeedFilter> for FeedFilter {
 
 #[derive(Serialize, Deserialize)]
 struct PartialFeedSource {
-    url: Option<FeedId>,
+    id: Option<FeedId>,
+    urls: Vec<String>,
     tags: Vec<String>,
     manual_update: Option<bool>,
     notify: Option<bool>,
@@ -149,7 +150,8 @@ struct PartialFeedSource {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FeedSource {
-    pub url: FeedId,
+    pub id: FeedId,
+    pub urls: Vec<String>,
     pub tags: Vec<String>,
     pub manual_update: bool,
     pub notify: bool,
@@ -159,7 +161,17 @@ pub struct FeedSource {
 impl From<PartialFeedSource> for FeedSource {
     fn from(value: PartialFeedSource) -> Self {
         Self {
-            url: value.url.expect("url is required"),
+            id: value.id.unwrap_or_else(|| {
+                value
+                    .urls
+                    .first()
+                    .expect("found a source without id or urls")
+                    .clone()
+                    .into()
+            }),
+            urls: (!value.urls.is_empty())
+                .then_some(value.urls)
+                .expect("found a source without urls"),
             tags: value.tags,
             manual_update: value.manual_update.unwrap_or(false),
             notify: value.notify.unwrap_or(false),
@@ -170,13 +182,13 @@ impl From<PartialFeedSource> for FeedSource {
 }
 impl PartialEq for FeedSource {
     fn eq(&self, other: &Self) -> bool {
-        self.url == other.url
+        self.urls == other.urls
     }
 }
 impl Eq for FeedSource {}
 impl Hash for FeedSource {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.url.hash(state);
+        self.urls.hash(state);
     }
 }
 
@@ -192,7 +204,7 @@ impl Sources {
         self.sources
             .into_iter()
             .map(
-                |source| match feeds.iter().position(|f| *f.id() == source.url) {
+                |source| match feeds.iter().position(|f| *f.id() == source.id) {
                     Some(idx) => {
                         let feed = feeds.swap_remove(idx);
                         let mut feed = Feed {
@@ -221,7 +233,8 @@ impl From<OPML> for Sources {
                 .outlines
                 .into_iter()
                 .map(|item| FeedSource {
-                    url: FeedId(item.url.unwrap()),
+                    id: item.url.clone().unwrap().into(),
+                    urls: vec![item.url.unwrap()],
                     tags: vec![item.category.unwrap()],
                     manual_update: false,
                     notify: false,
@@ -241,7 +254,7 @@ impl From<PartialSources> for Sources {
             if prev_size != uniques.len() {
                 for (src, freq) in sources.into_iter().counts() {
                     if freq > 1 {
-                        println!("[warning] duplicate source: {:?}", src.url);
+                        println!("[warning] duplicate source: {:?}", src.urls);
                     }
                 }
             }

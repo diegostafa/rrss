@@ -59,17 +59,7 @@ impl FeedManager {
         id: FeedId,
         finally: impl FnOnce() + Send + 'static,
     ) -> Option<JoinHandle<()>> {
-        if let Some(feed) = self.get_feed(id) {
-            let url = feed.url();
-            let (sx, rx) = async_std::channel::bounded(1);
-            self.update_feed_ch = Some(rx);
-            let fetch_task = async_std::task::spawn(async move {
-                let res = Self::fetch_feed(url).await;
-                sx.send(res).await.unwrap();
-                finally();
-            });
-            return Some(fetch_task);
-        }
+        self.update_feeds(&Filter::new().feed_id(id), finally);
         None
     }
     pub fn update_feeds(
@@ -81,7 +71,12 @@ impl FeedManager {
             .get_feeds(filter, &Sorter::NONE)
             .iter()
             .filter(|f| !f.conf.manual_update)
-            .map(|f| f.url())
+            .flat_map(|f| {
+                f.urls()
+                    .into_iter()
+                    .map(|u| (f.id().clone(), u))
+                    .collect_vec()
+            })
             .collect();
 
         let (sx, rx) = async_std::channel::bounded(1);
@@ -139,10 +134,10 @@ impl FeedManager {
             },
         }
     }
-    pub fn merge_new_feeds(&mut self, new_feeds: Vec<FetchData>) {
-        for new in new_feeds {
-            if let Some(feed) = self.get_feed_mut(new.0) {
-                feed.merge_feed(new.1)
+    pub fn merge_new_feeds(&mut self, fetched_feeds: Vec<FetchData>) {
+        for (id, data, _) in fetched_feeds {
+            if let Some(feed) = self.get_feed_mut(id) {
+                feed.merge_feed(data)
             }
         }
     }
@@ -221,7 +216,8 @@ impl FeedManager {
     pub fn as_opml(&self) -> OPML {
         let mut opml = OPML::default();
         for feed in &self.feeds {
-            opml.add_feed(&feed.name(), &feed.url());
+            let urls = feed.urls();
+            opml.add_feed(&feed.name(), urls.first().unwrap());
         }
         opml
     }
@@ -259,18 +255,18 @@ impl FeedManager {
         })
     }
 
-    async fn fetch_feed(url: String) -> FetchResult {
-        async_std::task::spawn_blocking(move || fetch_feed_impl(&url)).await
+    async fn fetch_feed(id: FeedId, url: String) -> FetchResult {
+        async_std::task::spawn_blocking(move || fetch_feed_impl(&id, &url)).await
     }
-    async fn fetch_feeds(urls: Vec<String>) -> Vec<FetchResult> {
+    async fn fetch_feeds(urls: Vec<(FeedId, String)>) -> Vec<FetchResult> {
         let semaphore = Arc::new(Semaphore::new(CONFIG.max_concurrency));
         let futures = FuturesUnordered::new();
-        for url in urls {
+        for (id, url) in urls {
             let future = async_std::task::spawn({
                 let semaphore = semaphore.clone();
                 async move {
                     let _guard = semaphore.acquire().await;
-                    Self::fetch_feed(url).await
+                    Self::fetch_feed(id, url).await
                 }
             });
             futures.push(future);
@@ -279,10 +275,10 @@ impl FeedManager {
     }
 }
 
-fn fetch_feed_impl(url: &str) -> FetchResult {
+fn fetch_feed_impl(id: &FeedId, url: &str) -> FetchResult {
     let data = ureq::get(url).call()?.into_body().read_to_string()?;
     let data = data.as_bytes();
     let bytes = data.len();
-    let data = feed_rs::parser::parse(data).map(|d| FeedData::from(d, url))?;
-    Ok((FeedId(url.to_string()), data, bytes))
+    let data = feed_rs::parser::parse(data).map(|d| FeedData::from(d, id))?;
+    Ok((id.clone(), data, bytes))
 }
